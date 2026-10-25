@@ -4,15 +4,23 @@ Coach de dieta pessoal em PWA, movido pelo Claude. Cada usuário informa a próp
 
 Escopo, decisões e roadmap: [`docs/ESCOPO.md`](docs/ESCOPO.md).
 
-## Estado atual (Fase 0)
+## Estado atual (Fases 0 a 6)
 
 - PWA instalável (manifest, service worker, ícones).
 - Tela de API key com validação e opção de não salvar no aparelho.
-- Chat com o coach com streaming, histórico local e Markdown.
+- Entrevista inicial guiada: o coach entende objetivo, dados, histórico, rotina e atividade, grava o perfil com ferramentas e propõe os **Combinados** (metas e regras), que o usuário revisa, edita e aprova.
+- Chat com o coach com streaming, ferramentas, anexos (foto e PDF), histórico local e Markdown.
+- Diário alimentar: o coach registra refeições com itens, porções e macros usando a tabela **TACO** embutida (NEPA/UNICAMP, via [taco-api](https://github.com/raulfdm/taco-api), MIT) e os alimentos do usuário; código de barras via Open Food Facts; água.
+- Dashboard **Hoje** com saldo de kcal e proteína (com ajuste em dia de treino), macros, refeições classificadas (dentro, atenção, fora), água e **Tendências**: peso com média de 7 dias, tendência semanal e projeção da meta, cintura, bioimpedância e aderência dos últimos 7 dias.
+- Relatório imprimível para o nutricionista, busca complementar no USDA (opcional) e interface em português ou inglês (o coach responde no idioma escolhido).
+- Fechamento semanal com o coach, insights automáticos, lembretes locais de pesagem, cintura e registro, backup JSON (exportar, importar), resumo automático de conversas longas e orçamento mensal de custo.
+- Biblioteca de documentos: plano alimentar, orientações do nutricionista, laudos, exames, tabelas e receitas em PDF ou foto. O coach lê, resume e guarda só o resumo; o plano entra no contexto de todas as conversas.
+- Corpo: peso, medidas, bioimpedância (manual ou por foto do laudo via coach), treino, sono, passos e exames laboratoriais, com histórico. Aba **Registros** com diário por dia, corpo e busca de alimentos.
+- Prompt dinâmico: perfil e Combinados vigentes entram em todo turno; o bloco fixo usa cache de prompt.
 - Escolha de modelo (Opus 5.5 padrão, Sonnet 5.5, Haiku 5.5) e estimativa de custo por mês.
 - Deploy automático no GitHub Pages a cada push na `main`.
 
-Próximas fases: onboarding e Combinados (F1), diário alimentar e dashboard (F2), corpo e tendências (F3), documentos (F4), fechamento semanal e backup (F5).
+Fora do escopo por decisão: sincronização em nuvem (os dados ficam só no aparelho; use o backup JSON para trocar de celular).
 
 ## Desenvolvimento
 

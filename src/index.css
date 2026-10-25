@@ -33,3 +33,11 @@ body {
 .md pre { background: var(--color-stone-100); padding: 0.5rem; border-radius: 0.5rem; overflow-x: auto; }
 .md strong { font-weight: 600; }
 .md a { color: var(--color-brand-700); text-decoration: underline; }
+
+@media print {
+  .no-print, nav { display: none !important; }
+  body { background: white; }
+  .relatorio { max-width: none; }
+  main { overflow: visible !important; }
+  html, body, #root, .flex.h-full { height: auto !important; overflow: visible !important; }
+}

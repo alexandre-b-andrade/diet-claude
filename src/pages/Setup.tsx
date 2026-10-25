@@ -3,9 +3,11 @@ import { ShieldCheck } from "lucide-react";
 import { Button, Input } from "../components/ui";
 import { describeError, validateApiKey } from "../lib/claude";
 import { useSettings } from "../lib/settings";
+import { useT } from "../i18n";
 
 export default function SetupPage() {
-  const { settings, updateApiKey } = useSettings();
+  const { settings, updateApiKey, update } = useSettings();
+  const { t, lang } = useT();
   const [key, setKey] = useState("");
   const [remember, setRemember] = useState(settings.rememberKey);
   const [busy, setBusy] = useState(false);
@@ -32,15 +34,20 @@ export default function SetupPage() {
       <div className="mb-8 text-center">
         <img src="icons/icon.svg" alt="" className="mx-auto mb-4 h-20 w-20" />
         <h1 className="text-2xl font-semibold">Diet Coach</h1>
-        <p className="mt-2 text-sm text-stone-600">
-          Seu coach de dieta com Claude. Para começar, informe sua API key da Anthropic.
-        </p>
+        <p className="mt-2 text-sm text-stone-600">{t("setup.tagline")}</p>
+        <div className="mt-3 flex justify-center gap-1 text-xs">
+          {(["pt-BR", "en"] as const).map((l) => (
+            <button key={l} type="button" onClick={() => update({ language: l })} className={`rounded-full px-3 py-1 ${lang === l ? "bg-brand-700 text-white" : "bg-stone-100 text-stone-600"}`}>
+              {l === "pt-BR" ? "Português" : "English"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label htmlFor="apikey" className="mb-1 block text-sm font-medium">
-            API key
+            {t("setup.apiKey")}
           </label>
           <Input
             id="apikey"
@@ -52,11 +59,11 @@ export default function SetupPage() {
             required
           />
           <p className="mt-1 text-xs text-stone-500">
-            Crie uma em{" "}
+            {t("setup.createKey")}{" "}
             <a className="underline" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">
               console.anthropic.com
             </a>
-            . Você paga diretamente à Anthropic pelo uso.
+            . {t("setup.pay")}
           </p>
         </div>
 
@@ -68,26 +75,21 @@ export default function SetupPage() {
             onChange={(e) => setRemember(e.target.checked)}
           />
           <span>
-            Lembrar neste aparelho
-            <span className="block text-xs text-stone-500">
-              Desmarque para pedir a chave a cada vez que abrir o app.
-            </span>
+            {t("setup.remember")}
+            <span className="block text-xs text-stone-500">{t("setup.rememberHint")}</span>
           </span>
         </label>
 
         {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
         <Button type="submit" className="w-full" disabled={busy}>
-          {busy ? "Verificando..." : "Começar"}
+          {busy ? t("setup.checking") : t("setup.start")}
         </Button>
       </form>
 
       <div className="mt-8 flex gap-3 rounded-2xl bg-brand-50 p-4 text-xs text-stone-700">
         <ShieldCheck className="shrink-0 text-brand-700" size={20} />
-        <p>
-          Sua chave e todos os seus dados de saúde ficam somente neste aparelho. O app não tem servidor: o único
-          tráfego externo é a conversa enviada à API da Anthropic. Este app não substitui nutricionista ou médico.
-        </p>
+        <p>{t("setup.privacy")}</p>
       </div>
     </div>
   );
