@@ -4,15 +4,17 @@ Coach de dieta pessoal em PWA, movido pelo Claude. Cada usuário informa a próp
 
 Escopo, decisões e roadmap: [`docs/ESCOPO.md`](docs/ESCOPO.md).
 
-## Estado atual (Fase 0)
+## Estado atual (Fases 0 e 1)
 
 - PWA instalável (manifest, service worker, ícones).
 - Tela de API key com validação e opção de não salvar no aparelho.
-- Chat com o coach com streaming, histórico local e Markdown.
+- Entrevista inicial guiada: o coach entende objetivo, dados, histórico, rotina e atividade, grava o perfil com ferramentas e propõe os **Combinados** (metas e regras), que o usuário revisa, edita e aprova.
+- Chat com o coach com streaming, ferramentas, anexos (foto e PDF), histórico local e Markdown.
+- Prompt dinâmico: perfil e Combinados vigentes entram em todo turno; o bloco fixo usa cache de prompt.
 - Escolha de modelo (Opus 5.5 padrão, Sonnet 5.5, Haiku 5.5) e estimativa de custo por mês.
 - Deploy automático no GitHub Pages a cada push na `main`.
 
-Próximas fases: onboarding e Combinados (F1), diário alimentar e dashboard (F2), corpo e tendências (F3), documentos (F4), fechamento semanal e backup (F5).
+Próximas fases: diário alimentar e saldo do dia (F2), corpo e tendências (F3), documentos (F4), fechamento semanal e backup (F5).
 
 ## Desenvolvimento
 

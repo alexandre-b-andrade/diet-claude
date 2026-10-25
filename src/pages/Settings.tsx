@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Link } from "react-router-dom";
 import { Button, Card, Input, PageHeader } from "../components/ui";
-import { db, wipeAllData } from "../lib/db";
+import { db, getCombinadosAtivos, wipeAllData } from "../lib/db";
 import { MODELS, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
 
@@ -16,6 +17,7 @@ export default function SettingsPage() {
 
   const monthUsage = useLiveQuery(() => db.usage.where("createdAt").aboveOrEqual(startOfMonth()).toArray(), []);
   const allUsage = useLiveQuery(() => db.usage.toArray(), []);
+  const combinados = useLiveQuery(getCombinadosAtivos, []);
 
   const sum = (rows: { costUsd: number }[] | undefined) => (rows ?? []).reduce((s, r) => s + r.costUsd, 0);
   const tokens = (rows: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number }[] | undefined) =>
@@ -28,6 +30,22 @@ export default function SettingsPage() {
       <PageHeader title="Configurações" />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
+          <Card title="Coach">
+            <p className="text-sm text-stone-600">
+              {combinados
+                ? `Combinados v${combinados.versao} ${combinados.status === "aprovado" ? "aprovados" : "aguardando aprovação"}.`
+                : "Entrevista inicial ainda não concluída."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-sm">
+              <Link to="/combinados" className="rounded-xl bg-stone-100 px-4 py-2 font-medium text-stone-800">
+                Ver Combinados
+              </Link>
+              <Link to="/onboarding" className="rounded-xl bg-stone-100 px-4 py-2 font-medium text-stone-800">
+                {combinados ? "Continuar entrevista" : "Fazer entrevista"}
+              </Link>
+            </div>
+          </Card>
+
           <Card title="Modelo">
             <div className="space-y-2">
               {MODELS.map((m) => (

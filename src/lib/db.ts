@@ -3,6 +3,8 @@ import Dexie, { type EntityTable } from "dexie";
 export interface Conversation {
   id?: number;
   title: string;
+  /** "coach" = conversa livre; "onboarding" = entrevista inicial. */
+  kind: "coach" | "onboarding";
   createdAt: number;
   updatedAt: number;
 }
@@ -13,8 +15,14 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   createdAt: number;
+  /** Nomes de anexos enviados junto (o arquivo em si não é guardado). */
+  attachments?: string[];
+  /** Ferramentas executadas nesta resposta, para mostrar na UI. */
+  toolEvents?: { name: string; summary: string }[];
   /** Preenchido quando a resposta foi interrompida ou falhou. */
   error?: string;
+  /** Mensagem técnica (ex.: abertura da entrevista) que não aparece na UI. */
+  hidden?: boolean;
 }
 
 export interface UsageRecord {
@@ -28,10 +36,86 @@ export interface UsageRecord {
   costUsd: number;
 }
 
+export type Sexo = "masculino" | "feminino" | "outro";
+export type Objetivo = "emagrecer" | "manter" | "ganhar_massa" | "saude";
+export type NivelAtividade = "sedentario" | "leve" | "moderado" | "intenso" | "muito_intenso";
+
+export interface Bioimpedancia {
+  data?: string;
+  gorduraPct?: number;
+  massaGordaKg?: number;
+  massaMagraKg?: number;
+  massaMuscularKg?: number;
+  gorduraVisceral?: number;
+  aguaPct?: number;
+  tmbKcal?: number;
+  idadeMetabolica?: number;
+}
+
+/** Perfil único do usuário (linha id = 1). */
+export interface Profile {
+  id: number;
+  status: "onboarding" | "active" | "skipped";
+  nome?: string;
+  sexo?: Sexo;
+  nascimento?: string; // YYYY-MM-DD
+  alturaCm?: number;
+  pesoAtualKg?: number;
+  cinturaCm?: number;
+  objetivo?: Objetivo;
+  metaPesoKg?: number;
+  prazo?: string;
+  metaDetalhes?: string;
+  nivelAtividade?: NivelAtividade;
+  treinos?: string;
+  rotina?: string;
+  restricoes?: string;
+  preferencias?: string;
+  saude?: string;
+  historico?: string;
+  planoNutricionista?: string;
+  bioimpedancia?: Bioimpedancia;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Refeicao {
+  nome: string;
+  horario: string;
+  descricao?: string;
+}
+
+export interface Combinados {
+  id?: number;
+  versao: number;
+  status: "proposto" | "aprovado" | "substituido";
+  createdAt: number;
+  aprovadoEm?: number;
+  metaKcal: number;
+  metaProteinaG: number;
+  carboMinG: number;
+  carboMaxG: number;
+  gorduraMinG: number;
+  gorduraMaxG: number;
+  fibraG?: number;
+  aguaMl?: number;
+  refeicoes: Refeicao[];
+  treinoAjusteKcal: number;
+  treinoAjusteCarboG: number;
+  pesagem: string;
+  cintura: string;
+  bioimpedancia: string;
+  tom: "tecnico" | "direto" | "acolhedor";
+  regras: string[];
+  racional: string;
+}
+
 class DietCoachDB extends Dexie {
   conversations!: EntityTable<Conversation, "id">;
   messages!: EntityTable<ChatMessage, "id">;
   usage!: EntityTable<UsageRecord, "id">;
+  profile!: EntityTable<Profile, "id">;
+  combinados!: EntityTable<Combinados, "id">;
 
   constructor() {
     super("dietcoach");
@@ -40,10 +124,57 @@ class DietCoachDB extends Dexie {
       messages: "++id, conversationId, createdAt",
       usage: "++id, createdAt, model",
     });
+    this.version(2)
+      .stores({
+        conversations: "++id, kind, updatedAt",
+        messages: "++id, conversationId, createdAt",
+        usage: "++id, createdAt, model",
+        profile: "id",
+        combinados: "++id, versao, status",
+      })
+      .upgrade((tx) =>
+        tx
+          .table("conversations")
+          .toCollection()
+          .modify((c) => {
+            c.kind ??= "coach";
+          }),
+      );
   }
 }
 
 export const db = new DietCoachDB();
+
+export const PROFILE_ID = 1;
+
+export async function getProfile(): Promise<Profile | undefined> {
+  return db.profile.get(PROFILE_ID);
+}
+
+export async function upsertProfile(patch: Partial<Profile>): Promise<Profile> {
+  const now = Date.now();
+  const current = await getProfile();
+  const next: Profile = {
+    id: PROFILE_ID,
+    status: "onboarding",
+    createdAt: now,
+    ...current,
+    ...patch,
+    updatedAt: now,
+  };
+  // Mescla bioimpedância em vez de substituir.
+  if (current?.bioimpedancia && patch.bioimpedancia) {
+    next.bioimpedancia = { ...current.bioimpedancia, ...patch.bioimpedancia };
+  }
+  await db.profile.put(next);
+  return next;
+}
+
+export async function getCombinadosAtivos(): Promise<Combinados | undefined> {
+  const aprovado = await db.combinados.where("status").equals("aprovado").last();
+  if (aprovado) return aprovado;
+  return db.combinados.where("status").equals("proposto").last();
+}
 
 export async function wipeAllData() {
   await db.delete();
