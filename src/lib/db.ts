@@ -110,12 +110,77 @@ export interface Combinados {
   racional: string;
 }
 
+export type Classificacao = "dentro" | "atencao" | "fora";
+
+export interface MealItem {
+  nome: string;
+  /** Quantidade na unidade informada (ex.: 2 unidades, 150 g). */
+  quantidade: number;
+  unidade: string;
+  /** Peso estimado em gramas, quando conhecido. */
+  gramas?: number;
+  kcal: number;
+  proteinaG: number;
+  carboG: number;
+  gorduraG: number;
+  fibraG?: number;
+  /** De onde vieram os valores: "taco", "usuario", "openfoodfacts", "usda", "estimativa". */
+  fonte?: string;
+}
+
+export interface Meal {
+  id?: number;
+  /** YYYY-MM-DD no fuso do aparelho. */
+  date: string;
+  /** HH:MM */
+  hora: string;
+  /** Nome da refeição (Café da manhã, Almoço, Lanche, Jantar, Extra...). */
+  refeicao: string;
+  descricao: string;
+  itens: MealItem[];
+  kcal: number;
+  proteinaG: number;
+  carboG: number;
+  gorduraG: number;
+  fibraG: number;
+  classificacao: Classificacao;
+  motivo?: string;
+  createdAt: number;
+}
+
+export interface WaterEntry {
+  id?: number;
+  date: string;
+  ml: number;
+  createdAt: number;
+}
+
+/** Alimento do usuário (tabela própria, rótulo, código de barras ou USDA). Valores por 100 g. */
+export interface CustomFood {
+  id?: number;
+  nome: string;
+  marca?: string;
+  kcal: number;
+  proteinaG: number;
+  carboG: number;
+  gorduraG: number;
+  fibraG?: number;
+  /** Porção usual em gramas, se conhecida. */
+  porcaoG?: number;
+  fonte: "usuario" | "tabela" | "openfoodfacts" | "usda";
+  codigoBarras?: string;
+  createdAt: number;
+}
+
 class DietCoachDB extends Dexie {
   conversations!: EntityTable<Conversation, "id">;
   messages!: EntityTable<ChatMessage, "id">;
   usage!: EntityTable<UsageRecord, "id">;
   profile!: EntityTable<Profile, "id">;
   combinados!: EntityTable<Combinados, "id">;
+  meals!: EntityTable<Meal, "id">;
+  water!: EntityTable<WaterEntry, "id">;
+  foods!: EntityTable<CustomFood, "id">;
 
   constructor() {
     super("dietcoach");
@@ -140,6 +205,16 @@ class DietCoachDB extends Dexie {
             c.kind ??= "coach";
           }),
       );
+    this.version(3).stores({
+      conversations: "++id, kind, updatedAt",
+      messages: "++id, conversationId, createdAt",
+      usage: "++id, createdAt, model",
+      profile: "id",
+      combinados: "++id, versao, status",
+      meals: "++id, date, createdAt",
+      water: "++id, date",
+      foods: "++id, nome, fonte, codigoBarras",
+    });
   }
 }
 

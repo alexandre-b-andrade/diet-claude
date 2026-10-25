@@ -1,4 +1,5 @@
-import type { Combinados, Profile } from "../lib/db";
+import { resumoDia } from "../lib/diary";
+import type { CoachContext } from "./context";
 import { publicProfile } from "./tools";
 
 export type CoachMode = "coach" | "onboarding";
@@ -18,13 +19,18 @@ Você tem ferramentas que gravam dados no aparelho do usuário. Use-as em vez de
 - calcular_metas: antes de propor ou revisar metas calóricas. Não calcule TMB de cabeça; use a ferramenta e explique o resultado.
 - propor_combinados: quando definir ou revisar as metas e regras de acompanhamento. Cria uma nova versão para o usuário aprovar.
 - consultar_perfil: quando precisar conferir um dado que não está no contexto.
-Depois de chamar uma ferramenta, continue a resposta normalmente e diga em uma linha o que foi gravado.
+- registrar_refeicao: toda vez que o usuário disser que comeu algo. Primeiro use buscar_alimento para os itens comuns (TACO e alimentos do usuário); estime só o que não encontrar e marque fonte "estimativa". Grave itens, porções, macros e a classificação.
+- atualizar_refeicao / remover_refeicao: quando o usuário corrigir ou desfazer um registro (os ids estão no diário do contexto).
+- consultar_diario: para dias anteriores, comparações e fechamentos.
+- buscar_codigo_barras e salvar_alimento: para produtos industrializados, rótulos, tabelas e receitas do usuário.
+- registrar_agua: quando o usuário informar água.
+Depois de chamar uma ferramenta, continue a resposta normalmente e diga em uma linha o que foi gravado. Não peça confirmação antes de registrar uma refeição descrita claramente; registre e deixe o usuário corrigir.
 
 ## Registro de refeições
 Quando o usuário descrever uma refeição (texto ou foto):
 1. Liste os itens com a porção estimada em gramas ou medidas caseiras. Se a porção não estiver clara, estime e diga que estimou; pergunte só quando a diferença mudar muito o resultado.
 2. Apresente uma tabela curta com kcal, proteína, carboidratos, gorduras e fibras da refeição.
-3. Informe o saldo do dia: quanto já foi consumido e quanto falta de kcal e de proteína até a meta dos Combinados, considerando o que o usuário já registrou hoje nesta conversa. Se não houver Combinados, diga isso e proponha fazer a entrevista inicial.
+3. Informe o saldo do dia a partir do diário no contexto (já inclui esta refeição depois de registrada): quanto foi consumido e quanto falta de kcal e de proteína até a meta dos Combinados. Se não houver Combinados, diga isso e proponha fazer a entrevista inicial.
 4. Classifique a refeição: o saldo calórico e proteico do dia é o critério principal; nada é proibido. Sinalize, porém, ultraprocessados, açúcar adicionado e frituras e explique o impacto.
 5. Sugira o que comer nas próximas refeições para fechar a meta.
 
@@ -67,25 +73,32 @@ export interface SystemBlock {
   cache: boolean;
 }
 
-export function buildSystemBlocks(mode: CoachMode, profile?: Profile, combinados?: Combinados, now = new Date()): SystemBlock[] {
+export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new Date()): SystemBlock[] {
   const blocks: SystemBlock[] = [{ text: COACH_SYSTEM_PROMPT, cache: true }];
   if (mode === "onboarding") blocks.push({ text: ONBOARDING_SYSTEM_PROMPT, cache: false });
 
-  const dyn: string[] = [`## Contexto\nData de hoje: ${now.toISOString().slice(0, 10)} (${now.toLocaleDateString("pt-BR", { weekday: "long" })}).`];
+  const dyn: string[] = [
+    `## Contexto\nData de hoje: ${ctx.hoje} (${now.toLocaleDateString("pt-BR", { weekday: "long" })}), ${now.getHours()}h${String(now.getMinutes()).padStart(2, "0")}.`,
+  ];
 
-  if (profile && Object.keys(publicProfile(profile)).length > 1) {
-    dyn.push(`## Perfil do usuário (gravado no aparelho)\n\`\`\`json\n${JSON.stringify(publicProfile(profile), null, 1)}\n\`\`\``);
+  if (ctx.profile && Object.keys(publicProfile(ctx.profile)).length > 1) {
+    dyn.push(`## Perfil do usuário (gravado no aparelho)\n\`\`\`json\n${JSON.stringify(publicProfile(ctx.profile), null, 1)}\n\`\`\``);
   } else {
     dyn.push("## Perfil do usuário\nAinda não há perfil gravado.");
   }
 
-  if (combinados) {
-    const { id: _id, createdAt: _c, aprovadoEm: _a, ...rest } = combinados;
+  if (ctx.combinados) {
+    const { id: _id, createdAt: _c, aprovadoEm: _a, ...rest } = ctx.combinados;
     dyn.push(
-      `## Combinados vigentes (v${combinados.versao}, ${combinados.status === "aprovado" ? "aprovados pelo usuário" : "propostos, aguardando aprovação"})\n\`\`\`json\n${JSON.stringify(rest, null, 1)}\n\`\`\``,
+      `## Combinados vigentes (v${ctx.combinados.versao}, ${ctx.combinados.status === "aprovado" ? "aprovados pelo usuário" : "propostos, aguardando aprovação"})\n\`\`\`json\n${JSON.stringify(rest, null, 1)}\n\`\`\``,
     );
   } else {
     dyn.push("## Combinados\nAinda não há Combinados. Sem metas definidas, não calcule saldo do dia; proponha a entrevista inicial.");
+  }
+
+  if (mode === "coach") {
+    dyn.push(`## Diário de hoje\n${resumoDia(ctx.hoje, ctx.refeicoesHoje, ctx.aguaHojeMl, ctx.saldoHoje)}`);
+    if (ctx.resumoOntem) dyn.push(`## Ontem\n${ctx.resumoOntem}`);
   }
 
   blocks.push({ text: dyn.join("\n\n"), cache: false });

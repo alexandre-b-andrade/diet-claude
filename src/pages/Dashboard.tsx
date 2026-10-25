@@ -1,16 +1,12 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
+import { Droplets, MessageCircle } from "lucide-react";
+import Ring from "../components/Ring";
 import { Card, PageHeader } from "../components/ui";
 import { db, getCombinadosAtivos, getProfile } from "../lib/db";
+import { todayKey } from "../lib/dates";
+import { CLASSIFICACAO_LABEL, calcularSaldo, somarRefeicoes } from "../lib/diary";
 import { idadeAnos } from "../lib/metas";
-import { formatUsd, modelInfo } from "../lib/pricing";
-import { useSettings } from "../lib/settings";
-
-function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
 
 const OBJETIVO_LABEL: Record<string, string> = {
   emagrecer: "Emagrecer",
@@ -19,18 +15,39 @@ const OBJETIVO_LABEL: Record<string, string> = {
   saude: "Saúde",
 };
 
+const CLASS_STYLE = {
+  dentro: "bg-brand-100 text-brand-800",
+  atencao: "bg-amber-100 text-amber-800",
+  fora: "bg-red-100 text-red-700",
+};
+
 export default function DashboardPage() {
-  const { settings } = useSettings();
+  const hoje = todayKey();
   const profile = useLiveQuery(getProfile, []);
   const combinados = useLiveQuery(getCombinadosAtivos, []);
-  const todayUsage = useLiveQuery(() => db.usage.where("createdAt").aboveOrEqual(startOfToday()).toArray(), []);
-  const costToday = (todayUsage ?? []).reduce((s, u) => s + u.costUsd, 0);
+  const meals = useLiveQuery(() => db.meals.where("date").equals(hoje).sortBy("hora"), [hoje]);
+  const water = useLiveQuery(() => db.water.where("date").equals(hoje).toArray(), [hoje]);
 
+  const totais = somarRefeicoes(meals ?? []);
+  const saldo = combinados ? calcularSaldo(totais, combinados, false) : undefined;
+  const aguaMl = (water ?? []).reduce((s, w) => s + w.ml, 0);
+  const aguaMeta = combinados?.aguaMl ?? 2500;
   const onboardingPending = !profile || profile.status !== "active";
+
+  async function addWater(ml: number) {
+    await db.water.add({ date: hoje, ml, createdAt: Date.now() });
+  }
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title="Hoje" />
+      <PageHeader
+        title="Hoje"
+        action={
+          <Link to="/chat" className="flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white">
+            <MessageCircle size={14} /> Registrar
+          </Link>
+        }
+      />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
           {onboardingPending && (
@@ -52,32 +69,92 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {combinados && (
-            <Card title={`Metas do dia · Combinados v${combinados.versao}`}>
-              <div className="grid grid-cols-2 gap-3">
-                <Stat label="Calorias" value={`${combinados.metaKcal} kcal`} />
-                <Stat label="Proteína" value={`${combinados.metaProteinaG} g`} />
-                <Stat label="Carboidrato" value={`${combinados.carboMinG}–${combinados.carboMaxG} g`} />
-                <Stat label="Gordura" value={`${combinados.gorduraMinG}–${combinados.gorduraMaxG} g`} />
+          {combinados && saldo && (
+            <Card title={`Saldo do dia · Combinados v${combinados.versao}`}>
+              <div className="flex justify-around">
+                <Ring value={saldo.consumidoKcal} max={saldo.metaKcal} label="Calorias" unit="kcal" />
+                <Ring value={saldo.consumidoProteinaG} max={saldo.metaProteinaG} label="Proteína" unit="g" color="var(--color-sky-600)" />
               </div>
-              {combinados.refeicoes.length > 0 && (
-                <ul className="mt-3 divide-y divide-stone-100 text-sm">
-                  {combinados.refeicoes.map((r, i) => (
-                    <li key={i} className="flex justify-between py-1.5">
-                      <span>{r.nome}</span>
-                      <span className="text-stone-500">{r.horario}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-3 text-xs text-stone-500">
-                O registro de refeições e o saldo do dia entram na próxima fase. Por enquanto, registre pelo chat.
+              <p className="mt-3 text-center text-sm text-stone-700">
+                {saldo.restanteKcal >= 0 ? (
+                  <>
+                    Faltam <strong>{saldo.restanteKcal} kcal</strong> e <strong>{saldo.restanteProteinaG} g</strong> de proteína.
+                  </>
+                ) : (
+                  <>
+                    <strong>{-saldo.restanteKcal} kcal</strong> acima da meta
+                    {saldo.restanteProteinaG > 0 ? <> e ainda faltam {saldo.restanteProteinaG} g de proteína.</> : "."}
+                  </>
+                )}
               </p>
-              <Link to="/combinados" className="mt-2 inline-block text-sm font-medium text-brand-700 underline">
-                Ver ou editar Combinados
-              </Link>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <Macro label="Carbo" value={totais.carboG} min={combinados.carboMinG} max={combinados.carboMaxG} />
+                <Macro label="Gordura" value={totais.gorduraG} min={combinados.gorduraMinG} max={combinados.gorduraMaxG} />
+                <Macro label="Fibras" value={totais.fibraG} min={combinados.fibraG ?? 25} max={combinados.fibraG ?? 25} />
+              </div>
             </Card>
           )}
+
+          <Card title="Refeições de hoje">
+            {!meals?.length ? (
+              <p className="text-sm text-stone-500">
+                Nada registrado ainda. Conte ao coach o que comeu ou mande a foto do prato.
+              </p>
+            ) : (
+              <ul className="divide-y divide-stone-100">
+                {meals.map((m) => (
+                  <li key={m.id} className="flex items-start justify-between gap-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        <span className="text-stone-500">{m.hora}</span> {m.refeicao}
+                      </p>
+                      <p className="truncate text-stone-600">{m.descricao}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-medium">{m.kcal} kcal</p>
+                      <p className="text-xs text-stone-500">P {m.proteinaG} g</p>
+                      <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] ${CLASS_STYLE[m.classificacao]}`}>
+                        {CLASSIFICACAO_LABEL[m.classificacao]}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {combinados && combinados.refeicoes.length > 0 && (
+              <p className="mt-3 text-xs text-stone-500">
+                Combinado: {combinados.refeicoes.map((r) => `${r.nome} ${r.horario}`).join(" · ")}
+              </p>
+            )}
+            <Link to="/registros" className="mt-2 inline-block text-sm font-medium text-brand-700 underline">
+              Ver diário completo
+            </Link>
+          </Card>
+
+          <Card title="Água">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                <Droplets className="text-sky-600" size={20} />
+                <span>
+                  <strong>{aguaMl} ml</strong> <span className="text-stone-500">de {aguaMeta} ml</span>
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {[200, 300, 500].map((ml) => (
+                  <button
+                    key={ml}
+                    onClick={() => addWater(ml)}
+                    className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100"
+                  >
+                    +{ml}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-100">
+              <div className="h-full bg-sky-500" style={{ width: `${Math.min(100, (aguaMl / aguaMeta) * 100)}%` }} />
+            </div>
+          </Card>
 
           {profile && (profile.pesoAtualKg || profile.objetivo) && (
             <Card title="Perfil">
@@ -98,12 +175,6 @@ export default function DashboardPage() {
                     <dd>{profile.pesoAtualKg} kg</dd>
                   </>
                 )}
-                {profile.cinturaCm && (
-                  <>
-                    <dt className="text-stone-500">Cintura</dt>
-                    <dd>{profile.cinturaCm} cm</dd>
-                  </>
-                )}
                 {profile.alturaCm && profile.nascimento && (
                   <>
                     <dt className="text-stone-500">Altura / idade</dt>
@@ -112,34 +183,25 @@ export default function DashboardPage() {
                     </dd>
                   </>
                 )}
-                {profile.bioimpedancia?.gorduraPct && (
-                  <>
-                    <dt className="text-stone-500">Gordura</dt>
-                    <dd>
-                      {profile.bioimpedancia.gorduraPct}%
-                      {profile.bioimpedancia.massaMagraKg ? ` · ${profile.bioimpedancia.massaMagraKg} kg massa magra` : ""}
-                    </dd>
-                  </>
-                )}
               </dl>
+              <Link to="/combinados" className="mt-2 inline-block text-sm font-medium text-brand-700 underline">
+                Ver Combinados
+              </Link>
             </Card>
           )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <Stat label="Modelo" value={modelInfo(settings.model).label.replace("Claude ", "")} />
-            <Stat label="Gasto hoje (estimado)" value={formatUsd(costToday)} />
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Macro({ label, value, min, max }: { label: string; value: number; min: number; max: number }) {
+  const ok = value >= min * 0.9 && value <= max * 1.1;
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-      <p className="text-xs text-stone-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
+    <div className="rounded-xl bg-stone-50 p-2">
+      <p className="text-stone-500">{label}</p>
+      <p className={`text-sm font-semibold ${ok ? "text-stone-900" : "text-amber-700"}`}>{Math.round(value)} g</p>
+      <p className="text-[10px] text-stone-400">{min === max ? `meta ${min}` : `${min}–${max}`}</p>
     </div>
   );
 }

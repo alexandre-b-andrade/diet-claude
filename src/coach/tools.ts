@@ -196,8 +196,7 @@ export const consultarPerfil = tool({
   },
 });
 
-export const ONBOARDING_TOOLS: CoachTool[] = [atualizarPerfil, calcularMetasTool, proporCombinados, consultarPerfil];
-export const COACH_TOOLS: CoachTool[] = [atualizarPerfil, calcularMetasTool, proporCombinados, consultarPerfil];
+export const PROFILE_TOOLS: CoachTool[] = [atualizarPerfil, calcularMetasTool, proporCombinados, consultarPerfil];
 
 export function publicProfile(p: Profile) {
   const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = p;

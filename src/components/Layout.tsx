@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutDashboard, MessageCircle, Settings } from "lucide-react";
+import { LayoutDashboard, MessageCircle, NotebookPen, Settings } from "lucide-react";
 
 const tabs = [
   { to: "/hoje", label: "Hoje", icon: LayoutDashboard },
   { to: "/chat", label: "Coach", icon: MessageCircle },
+  { to: "/registros", label: "Registros", icon: NotebookPen },
   { to: "/config", label: "Config", icon: Settings },
 ];
 

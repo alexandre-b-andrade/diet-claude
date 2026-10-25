@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import type { Attachment } from "../lib/attachments";
 import { describeError, runTurn, userContent, type HistoryTurn, type ToolEvent } from "../lib/claude";
-import { db, getCombinadosAtivos, getProfile, type ChatMessage, type Conversation } from "../lib/db";
+import { db, type ChatMessage, type Conversation } from "../lib/db";
 import { estimateCostUsd } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
 import { buildSystemBlocks, type CoachMode } from "../coach/systemPrompt";
-import { COACH_TOOLS, ONBOARDING_TOOLS } from "../coach/tools";
+import { loadCoachContext } from "../coach/context";
+import { COACH_TOOLS, ONBOARDING_TOOLS } from "../coach/toolsets";
 
 /** Quantas mensagens anteriores vão no contexto. Resumos chegam na Fase 5. */
 const HISTORY_LIMIT = 40;
@@ -73,7 +74,7 @@ export function useCoachChat(conversationId: number | undefined, mode: CoachMode
         if (last.role === "user" && typeof last.content === "string") last.content = userContent(last.content, attachments);
       }
 
-      const [profile, combinados] = await Promise.all([getProfile(), getCombinadosAtivos()]);
+      const context = await loadCoachContext();
       const controller = new AbortController();
       abortRef.current = controller;
       const state: StreamingState = { text: "", toolEvents: [] };
@@ -83,7 +84,7 @@ export function useCoachChat(conversationId: number | undefined, mode: CoachMode
         const result = await runTurn({
           apiKey,
           model: settings.model,
-          system: buildSystemBlocks(mode, profile, combinados),
+          system: buildSystemBlocks(mode, context),
           history,
           tools: mode === "onboarding" ? ONBOARDING_TOOLS : COACH_TOOLS,
           signal: controller.signal,

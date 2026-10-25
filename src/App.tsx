@@ -5,6 +5,7 @@ import ChatPage from "./pages/Chat";
 import CombinadosPage from "./pages/Combinados";
 import DashboardPage from "./pages/Dashboard";
 import OnboardingPage from "./pages/Onboarding";
+import RegistrosPage from "./pages/Registros";
 import SettingsPage from "./pages/Settings";
 import SetupPage from "./pages/Setup";
 import { getProfile } from "./lib/db";
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/combinados" element={<CombinadosPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/chat/:conversationId" element={<ChatPage />} />
+            <Route path="/registros/*" element={<RegistrosPage />} />
             <Route path="/config" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to={home} replace />} />
           </Route>
