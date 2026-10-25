@@ -1,4 +1,4 @@
-import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile, type Activity, type Combinados, type Meal, type Profile } from "../lib/db";
+import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile, type Activity, type Combinados, type Meal, type Profile, type UserDocument } from "../lib/db";
 import { addDays, todayKey } from "../lib/dates";
 import { calcularSaldo, resumoDia, somarRefeicoes, type Saldo } from "../lib/diary";
 import { mediaMovel, projecao, tendencia, umPorDia } from "../lib/body";
@@ -17,12 +17,13 @@ export interface CoachContext {
   treinosHoje: Activity[];
   /** Resumo textual de peso, medidas, bioimpedância, sono/passos e exames recentes. */
   corpo: string;
+  documentos: UserDocument[];
 }
 
 export async function loadCoachContext(): Promise<CoachContext> {
   const hoje = todayKey();
   const ontem = addDays(hoje, -1);
-  const [profile, combinados, pendentes, refeicoesHoje, aguaHoje, refeicoesOntem, aguaOntem, treinosHoje, corpo] = await Promise.all([
+  const [profile, combinados, pendentes, refeicoesHoje, aguaHoje, refeicoesOntem, aguaOntem, treinosHoje, corpo, documentos] = await Promise.all([
     getProfile(),
     getCombinadosAtivos(),
     getCombinadosPendentes(),
@@ -32,6 +33,7 @@ export async function loadCoachContext(): Promise<CoachContext> {
     db.water.where("date").equals(ontem).toArray(),
     db.activities.where("date").equals(hoje).toArray(),
     resumoCorpo(hoje),
+    db.documents.toArray(),
   ]);
   const aguaHojeMl = aguaHoje.reduce((s, w) => s + w.ml, 0);
   const saldoHoje = combinados ? calcularSaldo(somarRefeicoes(refeicoesHoje), combinados, treinosHoje.length > 0) : undefined;
@@ -46,7 +48,25 @@ export async function loadCoachContext(): Promise<CoachContext> {
     resumoOntem: refeicoesOntem.length ? resumoDia(ontem, refeicoesOntem, aguaOntem.reduce((s, w) => s + w.ml, 0)) : undefined,
     treinosHoje,
     corpo,
+    documentos: documentos.sort((a, b) => b.createdAt - a.createdAt),
   };
+}
+
+/** Lista de documentos para o prompt: planos e orientações completos (limitados), demais em uma linha. */
+export function resumoDocumentos(docs: UserDocument[]): string {
+  if (!docs.length) return "Nenhum documento na biblioteca.";
+  const LIMITE = 2500;
+  return docs
+    .map((d) => {
+      const cab = `- [id ${d.id}] ${d.tipo} · ${d.titulo}${d.data ? ` (${d.data})` : ""}`;
+      if (d.tipo === "plano" || d.tipo === "nutricionista") {
+        const r = d.resumo.length > LIMITE ? `${d.resumo.slice(0, LIMITE)}\n… (use consultar_documento para o restante)` : d.resumo;
+        return `${cab}\n${r}`;
+      }
+      const linha = d.resumo.replace(/\s+/g, " ").slice(0, 160);
+      return `${cab}: ${linha}${d.resumo.length > 160 ? "…" : ""}`;
+    })
+    .join("\n");
 }
 
 /** Texto compacto com o estado corporal recente para o prompt. */

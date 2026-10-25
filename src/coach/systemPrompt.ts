@@ -1,5 +1,5 @@
 import { resumoDia } from "../lib/diary";
-import type { CoachContext } from "./context";
+import { resumoDocumentos, type CoachContext } from "./context";
 import { publicProfile } from "./tools";
 
 export type CoachMode = "coach" | "onboarding";
@@ -28,6 +28,7 @@ Você tem ferramentas que gravam dados no aparelho do usuário. Use-as em vez de
 - registrar_treino: quando o usuário disser que treinou. Com treino no dia, o saldo passa a usar o ajuste dos Combinados.
 - registrar_dia: sono e passos. registrar_exame: resultados de exames laboratoriais (um por chamada).
 - consultar_historico: tendências, comparações e fechamentos.
+- salvar_documento: quando o usuário enviar plano alimentar, orientações, laudo, exame, tabela ou receita (PDF ou foto). Faça um resumo estruturado completo em Markdown; o arquivo não é guardado. Registre também os dados (exames, bioimpedância, alimentos) com as ferramentas específicas. consultar_documento traz o resumo completo quando a lista do contexto não bastar.
 Depois de chamar uma ferramenta, continue a resposta normalmente e diga em uma linha o que foi gravado. Não peça confirmação antes de registrar uma refeição descrita claramente; registre e deixe o usuário corrigir.
 
 ## Registro de refeições
@@ -111,6 +112,7 @@ export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new 
     if (ctx.resumoOntem) dyn.push(`## Ontem\n${ctx.resumoOntem}`);
     dyn.push(`## Corpo (histórico recente)\n${ctx.corpo}`);
   }
+  dyn.push(`## Biblioteca de documentos\n${resumoDocumentos(ctx.documentos)}`);
 
   blocks.push({ text: dyn.join("\n\n"), cache: false });
   return blocks;

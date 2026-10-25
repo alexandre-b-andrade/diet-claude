@@ -5,6 +5,7 @@ import ChatView from "../components/ChatView";
 import { PageHeader } from "../components/ui";
 import { createConversation, useCoachChat } from "../hooks/useCoachChat";
 import { db } from "../lib/db";
+import { takePendingSend } from "../lib/pendingSend";
 
 export default function ChatPage() {
   const { conversationId } = useParams();
@@ -26,6 +27,14 @@ export default function ChatPage() {
   }, [convId, navigate]);
 
   const chat = useCoachChat(convId, "coach");
+
+  // Envio pendente vindo de outra tela (ex.: upload em Registros › Documentos).
+  useEffect(() => {
+    if (convId === undefined || !chat.ready || chat.streaming || chat.messages === undefined) return;
+    const p = takePendingSend();
+    if (p) void chat.send(p.text, p.attachments);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convId, chat.ready, chat.messages === undefined]);
 
   async function startNew() {
     const id = await createConversation("coach");

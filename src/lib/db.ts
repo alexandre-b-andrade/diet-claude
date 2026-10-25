@@ -231,7 +231,26 @@ export interface LabResult {
   createdAt: number;
 }
 
+export type DocumentoTipo = "plano" | "nutricionista" | "laudo" | "exame" | "tabela" | "receita" | "outro";
+
+/** Documento do usuário: só o resumo estruturado é guardado, nunca o arquivo. */
+export interface UserDocument {
+  id?: number;
+  titulo: string;
+  tipo: DocumentoTipo;
+  /** Data do documento (YYYY-MM-DD), se houver. */
+  data?: string;
+  /** Resumo estruturado em Markdown, feito pelo coach. */
+  resumo: string;
+  /** Dados extraídos em JSON (texto), quando fizer sentido. */
+  dados?: string;
+  arquivoNome?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 class DietCoachDB extends Dexie {
+  documents!: EntityTable<UserDocument, "id">;
   measurements!: EntityTable<Measurement, "id">;
   bioimpedance!: EntityTable<BioimpedanceEntry, "id">;
   activities!: EntityTable<Activity, "id">;
@@ -293,6 +312,22 @@ class DietCoachDB extends Dexie {
       activities: "++id, date",
       daily: "date",
       labs: "++id, date, exame",
+    });
+    this.version(5).stores({
+      conversations: "++id, kind, updatedAt",
+      messages: "++id, conversationId, createdAt",
+      usage: "++id, createdAt, model",
+      profile: "id",
+      combinados: "++id, versao, status",
+      meals: "++id, date, createdAt",
+      water: "++id, date",
+      foods: "++id, nome, fonte, codigoBarras",
+      measurements: "++id, date, tipo, [tipo+date]",
+      bioimpedance: "++id, date",
+      activities: "++id, date",
+      daily: "date",
+      labs: "++id, date, exame",
+      documents: "++id, tipo, data, createdAt",
     });
   }
 }
