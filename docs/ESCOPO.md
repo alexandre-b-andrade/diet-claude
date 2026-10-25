@@ -188,6 +188,22 @@ Estimativa: F0–F2 formam o MVP real. Sugiro validar com 2–3 usuários ao fim
 - **F5** mantém lembretes locais, fechamento semanal, backup e custo.
 - **F6** fica com USDA, relatório PDF para nutricionista e i18n.
 
+## 7.1 Melhorias futuras (backlog, ainda não implementadas)
+
+Itens registrados após as fases 0 a 6, para a próxima rodada:
+
+### Chat
+- **Campo de texto que cresce ao digitar.** O campo de mensagem deve aumentar de altura conforme o usuário digita, mostrando mais linhas do texto em vez de rolar dentro de uma caixa pequena.
+- **Divisor arrastável entre conversa e campo de texto.** O usuário pode arrastar a borda entre a área das mensagens e a área de digitação para redimensionar o campo (toque e arraste no celular, mouse no desktop).
+- **Campo volta ao tamanho mínimo após enviar.** Ao tocar em Enviar, o campo de texto retorna à altura mínima, liberando espaço para a resposta do coach.
+
+### Já listados nas respostas anteriores
+- Web Push com servidor mínimo (notificação com o app fechado), decisão pendente.
+- Guia de primeiro uso para novos usuários (criar chave, instalar, entrevista).
+- Teste de ponta a ponta no CI; casos de borda da API (sem crédito, limite de requisições, foto grande).
+- Reduzir o bundle principal; completar a tradução das telas de Registros e Combinados.
+- Leitura automática da foto da balança de bioimpedância; lista de compras; modo "comer fora".
+
 ## 8. Riscos e cuidados
 - **Precisão nutricional**: estimativas por foto têm erro alto; o app deve mostrar faixas e pedir confirmação de porções.
 - **Saúde**: o coach não prescreve dietas restritivas severas, suplementos ou medicamentos; encaminha para profissional em sinais de alerta (perda de peso muito rápida, TCA, gestação, condições crônicas).
