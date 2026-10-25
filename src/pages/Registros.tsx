@@ -20,13 +20,13 @@ export default function RegistrosPage() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader title={t("records.title")} />
-      <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4">
+      <nav className="flex flex-wrap gap-1.5 border-b border-stone-200 bg-white px-4 py-2">
         {TABS.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
             className={({ isActive }) =>
-              `shrink-0 border-b-2 px-3 py-2 text-sm ${isActive ? "border-brand-700 font-medium text-brand-800" : "border-transparent text-stone-500"}`
+              `rounded-full px-3 py-1.5 text-sm ${isActive ? "bg-brand-700 font-medium text-white" : "bg-stone-100 text-stone-600"}`
             }
           >
             {t(tab.label)}
