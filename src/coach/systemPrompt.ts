@@ -28,6 +28,7 @@ Você tem ferramentas que gravam dados no aparelho do usuário. Use-as em vez de
 - registrar_treino: quando o usuário disser que treinou. Com treino no dia, o saldo passa a usar o ajuste dos Combinados.
 - registrar_dia: sono e passos. registrar_exame: resultados de exames laboratoriais (um por chamada).
 - consultar_historico: tendências, comparações e fechamentos.
+- salvar_fechamento: no fechamento semanal (o usuário pede ou o app envia o pedido com as métricas da semana). Use consultar_diario e consultar_historico se precisar de detalhes, analise aderência, proteína, peso e treinos, destaque o que funcionou e o que ajustar, e salve. Se as metas precisarem mudar, proponha com propor_combinados.
 - salvar_documento: quando o usuário enviar plano alimentar, orientações, laudo, exame, tabela ou receita (PDF ou foto). Faça um resumo estruturado completo em Markdown; o arquivo não é guardado. Registre também os dados (exames, bioimpedância, alimentos) com as ferramentas específicas. consultar_documento traz o resumo completo quando a lista do contexto não bastar.
 Depois de chamar uma ferramenta, continue a resposta normalmente e diga em uma linha o que foi gravado. Não peça confirmação antes de registrar uma refeição descrita claramente; registre e deixe o usuário corrigir.
 
@@ -78,7 +79,7 @@ export interface SystemBlock {
   cache: boolean;
 }
 
-export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new Date()): SystemBlock[] {
+export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new Date(), conversationSummary?: string): SystemBlock[] {
   const blocks: SystemBlock[] = [{ text: COACH_SYSTEM_PROMPT, cache: true }];
   if (mode === "onboarding") blocks.push({ text: ONBOARDING_SYSTEM_PROMPT, cache: false });
 
@@ -113,6 +114,7 @@ export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new 
     dyn.push(`## Corpo (histórico recente)\n${ctx.corpo}`);
   }
   dyn.push(`## Biblioteca de documentos\n${resumoDocumentos(ctx.documentos)}`);
+  if (conversationSummary) dyn.push(`## Resumo das mensagens anteriores desta conversa\n${conversationSummary}`);
 
   blocks.push({ text: dyn.join("\n\n"), cache: false });
   return blocks;

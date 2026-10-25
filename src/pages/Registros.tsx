@@ -3,6 +3,7 @@ import { PageHeader } from "../components/ui";
 import Alimentos from "./registros/Alimentos";
 import Corpo from "./registros/Corpo";
 import Documentos from "./registros/Documentos";
+import Semanas from "./registros/Semanas";
 import Refeicoes from "./registros/Refeicoes";
 
 const TABS = [
@@ -10,6 +11,7 @@ const TABS = [
   { to: "/registros/corpo", label: "Corpo" },
   { to: "/registros/alimentos", label: "Alimentos" },
   { to: "/registros/documentos", label: "Documentos" },
+  { to: "/registros/semanas", label: "Semanas" },
 ];
 
 export default function RegistrosPage() {
@@ -37,6 +39,7 @@ export default function RegistrosPage() {
             <Route path="corpo" element={<Corpo />} />
             <Route path="alimentos" element={<Alimentos />} />
             <Route path="documentos" element={<Documentos />} />
+            <Route path="semanas" element={<Semanas />} />
           </Routes>
         </div>
       </div>

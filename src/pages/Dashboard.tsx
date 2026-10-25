@@ -2,7 +2,13 @@ import { Suspense, lazy } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { Droplets, MessageCircle } from "lucide-react";
+import Insights from "../components/Insights";
+import RemindersCard from "../components/RemindersCard";
 import Ring from "../components/Ring";
+import WeeklyReviewCard from "../components/WeeklyReviewCard";
+import { useReminders } from "../hooks/useReminders";
+import { useSettings } from "../lib/settings";
+import { formatUsd } from "../lib/pricing";
 const Trends = lazy(() => import("../components/Trends"));
 import { Card, PageHeader } from "../components/ui";
 import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile } from "../lib/db";
@@ -23,8 +29,18 @@ const CLASS_STYLE = {
   fora: "bg-red-100 text-red-700",
 };
 
+function startOfMonth() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+}
+
 export default function DashboardPage() {
   const hoje = todayKey();
+  const { settings } = useSettings();
+  const due = useReminders();
+  const monthUsage = useLiveQuery(() => db.usage.where("createdAt").aboveOrEqual(startOfMonth()).toArray(), []);
+  const gastoMes = (monthUsage ?? []).reduce((s, u) => s + u.costUsd, 0);
+  const budget = settings.monthlyBudgetUsd;
   const profile = useLiveQuery(getProfile, []);
   const combinados = useLiveQuery(getCombinadosAtivos, []);
   const pendente = useLiveQuery(getCombinadosPendentes, []);
@@ -54,6 +70,18 @@ export default function DashboardPage() {
       />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
+          <RemindersCard due={due} />
+          {budget > 0 && gastoMes >= budget * 0.8 && (
+            <Card className={gastoMes >= budget ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}>
+              <p className="text-sm">
+                Gasto estimado do mês: <strong>{formatUsd(gastoMes)}</strong> de {formatUsd(budget)} de orçamento
+                {gastoMes >= budget ? ". Orçamento atingido; o app continua funcionando." : "."}{" "}
+                <Link to="/config" className="underline">
+                  Ajustar
+                </Link>
+              </p>
+            </Card>
+          )}
           {onboardingPending && (
             <Card className="border-brand-200 bg-brand-50">
               <p className="text-sm font-medium text-stone-800">
@@ -171,6 +199,9 @@ export default function DashboardPage() {
               <div className="h-full bg-sky-500" style={{ width: `${Math.min(100, (aguaMl / aguaMeta) * 100)}%` }} />
             </div>
           </Card>
+
+          {!onboardingPending && <Insights />}
+          {!onboardingPending && <WeeklyReviewCard />}
 
           <Suspense fallback={<Card title="Tendências"><p className="text-sm text-stone-400">Carregando…</p></Card>}>
             <Trends />

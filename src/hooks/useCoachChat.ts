@@ -4,13 +4,16 @@ import type { Attachment } from "../lib/attachments";
 import { describeError, runTurn, userContent, type HistoryTurn, type ToolEvent } from "../lib/claude";
 import { db, type ChatMessage, type Conversation } from "../lib/db";
 import { estimateCostUsd } from "../lib/pricing";
+import { summarizeMessages } from "../lib/summarize";
 import { useSettings } from "../lib/settings";
 import { buildSystemBlocks, type CoachMode } from "../coach/systemPrompt";
 import { loadCoachContext } from "../coach/context";
 import { COACH_TOOLS, ONBOARDING_TOOLS } from "../coach/toolsets";
 
-/** Quantas mensagens anteriores vão no contexto. Resumos chegam na Fase 5. */
+/** Acima disso, as mensagens mais antigas são resumidas e saem do contexto. */
 const HISTORY_LIMIT = 40;
+/** Quantas mensagens recentes ficam íntegras após um resumo. */
+const KEEP_RECENT = 24;
 
 export interface StreamingState {
   text: string;
@@ -64,9 +67,31 @@ export function useCoachChat(conversationId: number | undefined, mode: CoachMode
   const run = useCallback(
     async (convId: number, attachments: Attachment[] = []) => {
       if (!apiKey) return;
-      const stored = (await db.messages.where("conversationId").equals(convId).sortBy("createdAt"))
-        .filter((m) => !m.error)
-        .slice(-HISTORY_LIMIT);
+      const all = (await db.messages.where("conversationId").equals(convId).sortBy("createdAt")).filter((m) => !m.error);
+      const conv = await db.conversations.get(convId);
+      let summary = conv?.summary;
+      let stored = all.filter((m) => !conv?.summarizedUntilId || (m.id ?? 0) > conv.summarizedUntilId);
+      if (stored.length > HISTORY_LIMIT) {
+        // Resume o excedente com Haiku e guarda na conversa; falha aqui não impede a resposta.
+        const antigas = stored.slice(0, stored.length - KEEP_RECENT);
+        try {
+          const r = await summarizeMessages(apiKey, summary, antigas);
+          summary = r.text;
+          await db.conversations.update(convId, { summary, summarizedUntilId: antigas.at(-1)!.id });
+          await db.usage.add({
+            createdAt: Date.now(),
+            model: "claude-haiku-5-5",
+            inputTokens: r.usage.inputTokens,
+            outputTokens: r.usage.outputTokens,
+            cacheWriteTokens: 0,
+            cacheReadTokens: 0,
+            costUsd: estimateCostUsd("claude-haiku-5-5", { inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheWriteTokens: 0, cacheReadTokens: 0 }),
+          });
+          stored = stored.slice(-KEEP_RECENT);
+        } catch {
+          stored = stored.slice(-HISTORY_LIMIT);
+        }
+      }
       const history = mergeTurns(stored);
       // Anexos só vão na mensagem atual (a última do usuário); o arquivo não é persistido.
       if (attachments.length && history.length) {
@@ -84,7 +109,7 @@ export function useCoachChat(conversationId: number | undefined, mode: CoachMode
         const result = await runTurn({
           apiKey,
           model: settings.model,
-          system: buildSystemBlocks(mode, context),
+          system: buildSystemBlocks(mode, context, new Date(), summary),
           history,
           tools: mode === "onboarding" ? ONBOARDING_TOOLS : COACH_TOOLS,
           signal: controller.signal,

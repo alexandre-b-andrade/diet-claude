@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_MODEL, type ModelId } from "./pricing";
+import { REMINDER_DEFAULTS, type ReminderSettings } from "./reminders";
 
 export interface Settings {
   model: ModelId;
@@ -7,12 +8,15 @@ export interface Settings {
   rememberKey: boolean;
   /** Cotação usada para a estimativa em R$. */
   brlRate: number;
+  /** Orçamento mensal em US$ para aviso (0 = sem aviso). */
+  monthlyBudgetUsd: number;
+  reminders: ReminderSettings;
 }
 
 const SETTINGS_KEY = "dietcoach.settings";
 const API_KEY = "dietcoach.apiKey";
 
-const DEFAULTS: Settings = { model: DEFAULT_MODEL, rememberKey: true, brlRate: 5.5 };
+const DEFAULTS: Settings = { model: DEFAULT_MODEL, rememberKey: true, brlRate: 5.5, monthlyBudgetUsd: 0, reminders: REMINDER_DEFAULTS };
 
 const listeners = new Set<() => void>();
 function notify() {
@@ -22,7 +26,9 @@ function notify() {
 export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) } : DEFAULTS;
+    if (!raw) return DEFAULTS;
+    const parsed = JSON.parse(raw) as Partial<Settings>;
+    return { ...DEFAULTS, ...parsed, reminders: { ...REMINDER_DEFAULTS, ...(parsed.reminders ?? {}) } };
   } catch {
     return DEFAULTS;
   }

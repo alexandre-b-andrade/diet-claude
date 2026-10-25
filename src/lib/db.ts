@@ -7,6 +7,10 @@ export interface Conversation {
   kind: "coach" | "onboarding";
   createdAt: number;
   updatedAt: number;
+  /** Resumo das mensagens antigas que saíram do contexto (conversas longas). */
+  summary?: string;
+  /** Id da última mensagem coberta pelo resumo. */
+  summarizedUntilId?: number;
 }
 
 export interface ChatMessage {
@@ -249,7 +253,20 @@ export interface UserDocument {
   updatedAt: number;
 }
 
+/** Fechamento semanal feito pelo coach. */
+export interface WeeklyReview {
+  id?: number;
+  /** Segunda-feira da semana (YYYY-MM-DD). */
+  semanaInicio: string;
+  semanaFim: string;
+  resumo: string;
+  ajustes?: string;
+  metricas?: Record<string, number | string | null>;
+  createdAt: number;
+}
+
 class DietCoachDB extends Dexie {
+  reviews!: EntityTable<WeeklyReview, "id">;
   documents!: EntityTable<UserDocument, "id">;
   measurements!: EntityTable<Measurement, "id">;
   bioimpedance!: EntityTable<BioimpedanceEntry, "id">;
@@ -329,8 +346,45 @@ class DietCoachDB extends Dexie {
       labs: "++id, date, exame",
       documents: "++id, tipo, data, createdAt",
     });
+    this.version(6).stores({
+      conversations: "++id, kind, updatedAt",
+      messages: "++id, conversationId, createdAt",
+      usage: "++id, createdAt, model",
+      profile: "id",
+      combinados: "++id, versao, status",
+      meals: "++id, date, createdAt",
+      water: "++id, date",
+      foods: "++id, nome, fonte, codigoBarras",
+      measurements: "++id, date, tipo, [tipo+date]",
+      bioimpedance: "++id, date",
+      activities: "++id, date",
+      daily: "date",
+      labs: "++id, date, exame",
+      documents: "++id, tipo, data, createdAt",
+      reviews: "++id, semanaInicio, createdAt",
+    });
   }
 }
+
+/** Todas as tabelas, para backup e limpeza. */
+export const ALL_TABLES = [
+  "conversations",
+  "messages",
+  "usage",
+  "profile",
+  "combinados",
+  "meals",
+  "water",
+  "foods",
+  "measurements",
+  "bioimpedance",
+  "activities",
+  "daily",
+  "labs",
+  "documents",
+  "reviews",
+] as const;
+export type TableName = (typeof ALL_TABLES)[number];
 
 export const db = new DietCoachDB();
 

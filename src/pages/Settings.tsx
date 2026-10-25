@@ -3,6 +3,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { Button, Card, Input, PageHeader } from "../components/ui";
 import { db, getCombinadosAtivos, wipeAllData } from "../lib/db";
+import { backupFileName, exportBackup, importBackup, validateBackup } from "../lib/backup";
+import { useRef } from "react";
 import { MODELS, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
 
@@ -14,6 +16,40 @@ function startOfMonth() {
 export default function SettingsPage() {
   const { settings, apiKey, update, updateApiKey } = useSettings();
   const [newKey, setNewKey] = useState("");
+  const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
+  const rem = settings.reminders;
+  const notifPerm = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
+
+  async function doExport() {
+    const b = await exportBackup();
+    const blob = new Blob([JSON.stringify(b)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = backupFileName();
+    a.click();
+    URL.revokeObjectURL(url);
+    const n = Object.values(b.tables).reduce((s, t) => s + (t?.length ?? 0), 0);
+    setBackupMsg(`Backup exportado com ${n} registros.`);
+  }
+
+  async function doImport(file: File | undefined, modo: "substituir" | "mesclar") {
+    if (!file) return;
+    try {
+      const json = JSON.parse(await file.text());
+      if (!validateBackup(json)) throw new Error("Arquivo não é um backup do Diet Coach.");
+      if (modo === "substituir" && !confirm("Substituir TODOS os dados deste aparelho pelo backup? Esta ação não pode ser desfeita.")) return;
+      const counts = await importBackup(json, modo);
+      setBackupMsg(`Importado (${modo}): ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ")}.`);
+    } catch (e) {
+      setBackupMsg(`Erro ao importar: ${(e as Error).message}`);
+    } finally {
+      if (importRef.current) importRef.current.value = "";
+    }
+  }
+
+  const DIAS = ["D", "S", "T", "Q", "Q", "S", "S"];
 
   const monthUsage = useLiveQuery(() => db.usage.where("createdAt").aboveOrEqual(startOfMonth()).toArray(), []);
   const allUsage = useLiveQuery(() => db.usage.toArray(), []);
@@ -94,9 +130,24 @@ export default function SettingsPage() {
                 onChange={(e) => update({ brlRate: Number(e.target.value) || 0 })}
               />
             </div>
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <label htmlFor="budget" className="text-stone-500">
+                Orçamento mensal (US$)
+              </label>
+              <Input
+                id="budget"
+                type="number"
+                step="1"
+                min="0"
+                className="w-24"
+                value={settings.monthlyBudgetUsd || ""}
+                placeholder="0"
+                onChange={(e) => update({ monthlyBudgetUsd: Number(e.target.value) || 0 })}
+              />
+            </div>
             <p className="mt-2 text-xs text-stone-500">
               Estimativa calculada no aparelho a partir dos tokens informados pela API. O valor exato está no console da
-              Anthropic.
+              Anthropic. Com orçamento definido, o app avisa ao passar de 80%.
             </p>
           </Card>
 
@@ -138,10 +189,96 @@ export default function SettingsPage() {
             </Button>
           </Card>
 
+          <Card title="Lembretes">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={rem.enabled} onChange={(e) => update({ reminders: { ...rem, enabled: e.target.checked } })} />
+              Ativar lembretes
+            </label>
+            {rem.enabled && (
+              <div className="mt-3 space-y-3 text-sm">
+                <div>
+                  <p className="mb-1 text-xs text-stone-500">Pesagem</p>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {DIAS.map((d, i) => (
+                      <button
+                        key={i}
+                        onClick={() => update({ reminders: { ...rem, pesagemDias: rem.pesagemDias.includes(i) ? rem.pesagemDias.filter((x) => x !== i) : [...rem.pesagemDias, i].sort() } })}
+                        className={`h-8 w-8 rounded-full text-xs ${rem.pesagemDias.includes(i) ? "bg-brand-700 text-white" : "bg-stone-100 text-stone-600"}`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                    <Input type="time" className="w-28" value={rem.pesagemHora} onChange={(e) => update({ reminders: { ...rem, pesagemHora: e.target.value } })} />
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs text-stone-500">Cintura (um dia por semana)</p>
+                  <div className="flex items-center gap-1">
+                    <select
+                      className="rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm"
+                      value={rem.cinturaDia ?? ""}
+                      onChange={(e) => update({ reminders: { ...rem, cinturaDia: e.target.value === "" ? null : Number(e.target.value) } })}
+                    >
+                      <option value="">desligado</option>
+                      {["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"].map((d, i) => (
+                        <option key={i} value={i}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                    <Input type="time" className="w-28" value={rem.cinturaHora} onChange={(e) => update({ reminders: { ...rem, cinturaHora: e.target.value } })} />
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs text-stone-500">Registrar refeições (horários)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {rem.refeicoesHoras.map((h, i) => (
+                      <span key={i} className="flex items-center gap-1">
+                        <Input type="time" className="w-28" value={h} onChange={(e) => update({ reminders: { ...rem, refeicoesHoras: rem.refeicoesHoras.map((x, j) => (j === i ? e.target.value : x)) } })} />
+                        <button className="text-stone-400" onClick={() => update({ reminders: { ...rem, refeicoesHoras: rem.refeicoesHoras.filter((_, j) => j !== i) } })} aria-label="Remover">
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <Button variant="ghost" onClick={() => update({ reminders: { ...rem, refeicoesHoras: [...rem.refeicoesHoras, "18:00"] } })}>
+                      +
+                    </Button>
+                  </div>
+                </div>
+                <div className="rounded-xl bg-stone-50 p-3 text-xs text-stone-600">
+                  {notifPerm === "granted" && "Notificações permitidas. Elas só são enviadas enquanto o app estiver aberto ou em segundo plano recente; o lembrete também aparece no topo da tela Hoje."}
+                  {notifPerm === "default" && (
+                    <>
+                      <p>Para receber notificação no aparelho, permita as notificações.</p>
+                      <Button variant="ghost" className="mt-2" onClick={() => Notification.requestPermission().then(() => update({}))}>
+                        Permitir notificações
+                      </Button>
+                    </>
+                  )}
+                  {notifPerm === "denied" && "Notificações bloqueadas no navegador. Os lembretes aparecem só dentro do app."}
+                  {notifPerm === "unsupported" && "Este navegador não suporta notificações. Os lembretes aparecem só dentro do app."}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          <Card title="Backup">
+            <p className="text-sm text-stone-600">Exporte um arquivo JSON com tudo (conversas, diário, medidas, documentos). Use para trocar de aparelho ou guardar uma cópia.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button onClick={doExport}>Exportar backup</Button>
+              <Button variant="ghost" onClick={() => { importRef.current!.dataset.modo = "mesclar"; importRef.current?.click(); }}>
+                Importar (mesclar)
+              </Button>
+              <Button variant="danger" onClick={() => { importRef.current!.dataset.modo = "substituir"; importRef.current?.click(); }}>
+                Importar (substituir)
+              </Button>
+              <input ref={importRef} type="file" accept="application/json" className="hidden" onChange={(e) => doImport(e.target.files?.[0], (e.target.dataset.modo as "substituir" | "mesclar") ?? "mesclar")} />
+            </div>
+            {backupMsg && <p className="mt-2 text-xs text-stone-600">{backupMsg}</p>}
+          </Card>
+
           <Card title="Dados">
-            <p className="text-sm text-stone-600">
-              Tudo fica neste aparelho. Exportar e importar backup chegam em uma fase futura.
-            </p>
+            <p className="text-sm text-stone-600">Tudo fica neste aparelho.</p>
             <Button
               variant="danger"
               className="mt-3"
