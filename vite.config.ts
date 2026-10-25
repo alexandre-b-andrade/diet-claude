@@ -2,12 +2,24 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { execSync } from "node:child_process";
+
+function gitSha(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return "local";
+  }
+}
 
 // GitHub Pages serve o app em /<repo>/. Em dev usamos a raiz.
 const base = process.env.VITE_BASE ?? "/";
 
 export default defineConfig({
   base,
+  define: {
+    __APP_VERSION__: JSON.stringify(`${gitSha()} · ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC`),
+  },
   plugins: [
     react(),
     tailwindcss(),

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Markdown from "react-markdown";
-import { Check, Paperclip, Send, Square, X } from "lucide-react";
+import { Check, Loader2, Paperclip, Send, Square, X } from "lucide-react";
 import { fileToAttachment, type Attachment } from "../lib/attachments";
 import type { ChatMessage } from "../lib/db";
 import type { StreamingState } from "../hooks/useCoachChat";
@@ -77,6 +77,12 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
       <div className="border-t border-stone-200 bg-white px-4 py-3">
         <div className="mx-auto max-w-2xl space-y-2">
           {footer}
+          {streaming && (
+            <p className="flex items-center gap-2 text-xs text-stone-500">
+              <Loader2 size={14} className="animate-spin text-brand-700" />
+              {streaming.text ? t("chat.writing") : t("chat.thinking")}
+            </p>
+          )}
           {(attachments.length > 0 || attachError) && (
             <div className="flex flex-wrap gap-2">
               {attachments.map((a, i) => (
@@ -118,8 +124,9 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
                 }
               }}
               rows={1}
-              placeholder={placeholder ?? "Escreva aqui…"}
-              className="max-h-40 flex-1 resize-none rounded-2xl border border-stone-300 px-4 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+              disabled={Boolean(streaming)}
+              placeholder={streaming ? t("chat.wait") : (placeholder ?? "Escreva aqui…")}
+              className="max-h-40 flex-1 resize-none rounded-2xl border border-stone-300 px-4 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:bg-stone-50 disabled:text-stone-400"
             />
             {streaming ? (
               <button type="button" onClick={onStop} className="rounded-full bg-stone-800 p-3 text-white" aria-label={t("chat.stop")}>
@@ -144,6 +151,8 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
 
 function Bubble({ msg, live = false }: { msg: ChatMessage; live?: boolean }) {
   const mine = msg.role === "user";
+  const { t } = useT();
+  const thinkingLabel = t("chat.thinking");
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
@@ -172,7 +181,11 @@ function Bubble({ msg, live = false }: { msg: ChatMessage; live?: boolean }) {
             <div className="md">
               <Markdown>{msg.content}</Markdown>
             </div>
-            {live && !msg.content.trim() && <span className="text-xs text-stone-400">pensando…</span>}
+            {live && !msg.content.trim() && (
+              <span className="flex items-center gap-2 text-xs text-stone-500">
+                <Loader2 size={14} className="animate-spin text-brand-700" /> {thinkingLabel}
+              </span>
+            )}
           </>
         )}
         {msg.error && <p className="mt-2 text-xs text-red-600">{msg.error}</p>}

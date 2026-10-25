@@ -49,6 +49,15 @@ export interface RunTurnResult {
 }
 
 const MAX_TOOL_ROUNDS = 8;
+/** Sem nenhum evento da API por este tempo, a chamada é abortada. */
+const SILENCE_TIMEOUT_MS = 150_000;
+
+export class SilenceTimeoutError extends Error {
+  constructor() {
+    super("A API ficou sem responder por mais de 2,5 minutos.");
+    this.name = "SilenceTimeoutError";
+  }
+}
 
 /** Um turno completo do coach: streaming + execução local de ferramentas até o modelo encerrar. */
 export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
@@ -67,7 +76,22 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
   let servedBy = opts.model;
   let stopReason: string | null = null;
 
+  // Watchdog: aborta se a API ficar muda por muito tempo (rede travada, proxy etc.).
+  const watchdog = new AbortController();
+  let silenceTimer: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
+  const kick = () => {
+    if (silenceTimer) clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      timedOut = true;
+      watchdog.abort();
+    }, SILENCE_TIMEOUT_MS);
+  };
+  opts.signal?.addEventListener("abort", () => watchdog.abort(), { once: true });
+
+  try {
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+    kick();
     const stream = client.beta.messages.stream(
       {
         model: opts.model,
@@ -84,15 +108,22 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
       },
-      { signal: opts.signal },
+      { signal: watchdog.signal },
     );
 
+    stream.on("streamEvent", kick);
     stream.on("text", (delta) => {
       text += delta;
       opts.onText(delta);
     });
 
-    const message = await stream.finalMessage();
+    let message: Awaited<ReturnType<typeof stream.finalMessage>>;
+    try {
+      message = await stream.finalMessage();
+    } catch (err) {
+      if (timedOut) throw new SilenceTimeoutError();
+      throw err;
+    }
     servedBy = message.model;
     stopReason = message.stop_reason;
     usage.inputTokens += message.usage.input_tokens;
@@ -145,6 +176,9 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
       opts.onText("\n\n");
     }
   }
+  } finally {
+    if (silenceTimer) clearTimeout(silenceTimer);
+  }
 
   return { text, usage, stopReason, servedBy, toolEvents };
 }
@@ -171,7 +205,8 @@ export function describeError(err: unknown): string {
   if (err instanceof Anthropic.BadRequestError) return `Requisição rejeitada pela API: ${err.message}`;
   if (err instanceof Anthropic.APIConnectionError) return "Sem conexão com a API. Verifique sua internet.";
   if (err instanceof Anthropic.APIError) return `Erro da API (${err.status ?? "?"}): ${err.message}`;
+  if (err instanceof SilenceTimeoutError) return `${err.message} Verifique a conexão e tente de novo.`;
   if (err instanceof Error && err.name === "AbortError") return "Resposta interrompida.";
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error) return `${err.name && err.name !== "Error" ? `${err.name}: ` : ""}${err.message}`;
   return "Erro inesperado. Tente novamente.";
 }
