@@ -84,6 +84,7 @@ export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new 
   if (mode === "onboarding") blocks.push({ text: ONBOARDING_SYSTEM_PROMPT, cache: false });
 
   const dyn: string[] = [
+    ...(ctx.language === "en" ? ["## Idioma\nO usuário escolheu inglês: responda sempre em inglês (US), mantendo unidades métricas. Os nomes das ferramentas e os dados gravados continuam em português."] : []),
     `## Contexto\nData de hoje: ${ctx.hoje} (${now.toLocaleDateString("pt-BR", { weekday: "long" })}), ${now.getHours()}h${String(now.getMinutes()).padStart(2, "0")}.`,
   ];
 

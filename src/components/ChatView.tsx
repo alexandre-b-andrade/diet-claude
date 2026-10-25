@@ -4,6 +4,7 @@ import { Check, Paperclip, Send, Square, X } from "lucide-react";
 import { fileToAttachment, type Attachment } from "../lib/attachments";
 import type { ChatMessage } from "../lib/db";
 import type { StreamingState } from "../hooks/useCoachChat";
+import { useT } from "../i18n";
 
 interface Props {
   messages: ChatMessage[] | undefined;
@@ -23,6 +24,7 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
   const [attachError, setAttachError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { t } = useT();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,7 +103,7 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
               type="button"
               onClick={() => fileRef.current?.click()}
               className="rounded-full p-3 text-stone-500 hover:bg-stone-100"
-              aria-label="Anexar foto ou PDF"
+              aria-label={t("chat.attach")}
               disabled={Boolean(streaming)}
             >
               <Paperclip size={18} />
@@ -120,7 +122,7 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
               className="max-h-40 flex-1 resize-none rounded-2xl border border-stone-300 px-4 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             />
             {streaming ? (
-              <button type="button" onClick={onStop} className="rounded-full bg-stone-800 p-3 text-white" aria-label="Parar">
+              <button type="button" onClick={onStop} className="rounded-full bg-stone-800 p-3 text-white" aria-label={t("chat.stop")}>
                 <Square size={18} />
               </button>
             ) : (
@@ -128,7 +130,7 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
                 type="submit"
                 disabled={!draft.trim() && !attachments.length}
                 className="rounded-full bg-brand-700 p-3 text-white disabled:opacity-40"
-                aria-label="Enviar"
+                aria-label={t("chat.send")}
               >
                 <Send size={18} />
               </button>

@@ -3,6 +3,8 @@ import { db, type Meal, type MealItem } from "../lib/db";
 import { nowTime, todayKey } from "../lib/dates";
 import { resumoDia, somarItens, somarRefeicoes } from "../lib/diary";
 import { lookupBarcode, porPorcao, searchFoods } from "../lib/foods";
+import { loadSettings } from "../lib/settings";
+import { saveUsdaHit, searchUsda } from "../lib/usda";
 import type { CoachTool } from "./tools";
 
 function tool<S extends z.ZodType>(t: CoachTool<S>): CoachTool<S> {
@@ -147,14 +149,27 @@ export const consultarDiario = tool({
 export const buscarAlimento = tool({
   name: "buscar_alimento",
   description:
-    "Busca alimentos na tabela TACO (brasileira, 591 itens) e nos alimentos cadastrados pelo usuário. Retorna valores por 100 g e, se pedido, por porção. Prefira esta ferramenta a estimar de cabeça. Use termos simples em português, ex. 'arroz cozido', 'peito frango grelhado', 'pão francês'.",
+    "Busca alimentos na tabela TACO (brasileira, 591 itens) e nos alimentos cadastrados pelo usuário; se nada for encontrado e o USDA estiver habilitado nas configurações, busca também no USDA FoodData Central (termo em inglês ajuda). Retorna valores por 100 g e, se pedido, por porção. Prefira esta ferramenta a estimar de cabeça. Use termos simples, ex. 'arroz cozido', 'peito frango grelhado', 'pão francês'.",
   schema: z.object({
     termo: z.string(),
     gramas: opt(z.number().describe("Se informado, retorna também os valores para essa porção")),
     limite: opt(z.number().int().min(1).max(20)),
   }),
   async run(input) {
-    const hits = await searchFoods(input.termo, input.limite ?? 8);
+    let hits = await searchFoods(input.termo, input.limite ?? 8);
+    let aviso: string | undefined;
+    const settings = loadSettings();
+    if (!hits.length && settings.usdaEnabled) {
+      try {
+        const usda = await searchUsda(input.termo, settings.usdaApiKey, input.limite ?? 8);
+        hits = usda;
+        // Guarda os 3 primeiros para reutilizar offline.
+        await Promise.all(usda.slice(0, 3).map(saveUsdaHit));
+        if (usda.length) aviso = "Resultados do USDA (EUA); valores por 100 g, alimentos podem diferir dos brasileiros.";
+      } catch (e) {
+        aviso = `USDA indisponível: ${(e as Error).message}`;
+      }
+    }
     const out = hits.map((h) => ({
       ref: h.ref,
       nome: h.nome,
@@ -166,8 +181,8 @@ export const buscarAlimento = tool({
       ...(input.gramas ? { porcao: { gramas: input.gramas, ...porPorcao(h, input.gramas) } } : {}),
     }));
     return {
-      result: JSON.stringify(out.length ? out : { aviso: "Nada encontrado. Tente outro termo ou estime e marque fonte 'estimativa'." }),
-      summary: `Alimento buscado: "${input.termo}" (${out.length} resultados)`,
+      result: JSON.stringify(out.length ? { aviso, resultados: out } : { aviso: aviso ?? "Nada encontrado. Tente outro termo ou estime e marque fonte 'estimativa'." }),
+      summary: `Alimento buscado: "${input.termo}" (${out.length} resultados${out[0]?.fonte === "usda" ? ", USDA" : ""})`,
     };
   },
 });

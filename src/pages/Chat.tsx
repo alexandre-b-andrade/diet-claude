@@ -6,6 +6,7 @@ import { PageHeader } from "../components/ui";
 import { createConversation, useCoachChat } from "../hooks/useCoachChat";
 import { db } from "../lib/db";
 import { takePendingSend } from "../lib/pendingSend";
+import { useT } from "../i18n";
 
 export default function ChatPage() {
   const { conversationId } = useParams();
@@ -27,6 +28,7 @@ export default function ChatPage() {
   }, [convId, navigate]);
 
   const chat = useCoachChat(convId, "coach");
+  const { t } = useT();
 
   // Envio pendente vindo de outra tela (ex.: upload em Registros › Documentos).
   useEffect(() => {
@@ -44,9 +46,9 @@ export default function ChatPage() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
-        title="Coach"
+        title={t("chat.title")}
         action={
-          <button onClick={startNew} className="rounded-full p-2 text-stone-600 hover:bg-stone-100" aria-label="Nova conversa">
+          <button onClick={startNew} className="rounded-full p-2 text-stone-600 hover:bg-stone-100" aria-label={t("chat.new")}>
             <Plus size={20} />
           </button>
         }
@@ -57,7 +59,7 @@ export default function ChatPage() {
         error={chat.error}
         onSend={chat.send}
         onStop={chat.stop}
-        placeholder="Conte o que comeu, seu peso, ou peça uma sugestão…"
+        placeholder={t("chat.placeholder")}
         empty={<Welcome />}
       />
     </div>
@@ -65,14 +67,15 @@ export default function ChatPage() {
 }
 
 function Welcome() {
+  const { t } = useT();
   return (
     <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-5 text-sm text-stone-600">
-      <p className="font-medium text-stone-800">Olá. Sou seu coach de dieta.</p>
-      <p className="mt-2">Você pode:</p>
+      <p className="font-medium text-stone-800">{t("chat.hello")}</p>
+      <p className="mt-2">{t("chat.youCan")}</p>
       <ul className="mt-2 list-disc space-y-1 pl-5">
-        <li>descrever o que comeu, ou mandar a foto do prato, para eu calcular kcal e macros;</li>
-        <li>informar peso, cintura ou a bioimpedância de hoje;</li>
-        <li>dizer o que tem em casa para eu sugerir uma refeição.</li>
+        <li>{t("chat.tip1")}</li>
+        <li>{t("chat.tip2")}</li>
+        <li>{t("chat.tip3")}</li>
       </ul>
     </div>
   );

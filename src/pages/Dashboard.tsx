@@ -9,6 +9,7 @@ import WeeklyReviewCard from "../components/WeeklyReviewCard";
 import { useReminders } from "../hooks/useReminders";
 import { useSettings } from "../lib/settings";
 import { formatUsd } from "../lib/pricing";
+import { useT } from "../i18n";
 const Trends = lazy(() => import("../components/Trends"));
 import { Card, PageHeader } from "../components/ui";
 import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile } from "../lib/db";
@@ -37,6 +38,7 @@ function startOfMonth() {
 export default function DashboardPage() {
   const hoje = todayKey();
   const { settings } = useSettings();
+  const { t } = useT();
   const due = useReminders();
   const monthUsage = useLiveQuery(() => db.usage.where("createdAt").aboveOrEqual(startOfMonth()).toArray(), []);
   const gastoMes = (monthUsage ?? []).reduce((s, u) => s + u.costUsd, 0);
@@ -61,10 +63,10 @@ export default function DashboardPage() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
-        title="Hoje"
+        title={t("today.title")}
         action={
           <Link to="/chat" className="flex items-center gap-1 rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white">
-            <MessageCircle size={14} /> Registrar
+            <MessageCircle size={14} /> {t("today.log")}
           </Link>
         }
       />
@@ -74,10 +76,10 @@ export default function DashboardPage() {
           {budget > 0 && gastoMes >= budget * 0.8 && (
             <Card className={gastoMes >= budget ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}>
               <p className="text-sm">
-                Gasto estimado do mês: <strong>{formatUsd(gastoMes)}</strong> de {formatUsd(budget)} de orçamento
-                {gastoMes >= budget ? ". Orçamento atingido; o app continua funcionando." : "."}{" "}
+                {t("today.budget", { spent: formatUsd(gastoMes), budget: formatUsd(budget) })}
+                {gastoMes >= budget ? t("today.budgetReached") : "."}{" "}
                 <Link to="/config" className="underline">
-                  Ajustar
+                  {t("today.adjust")}
                 </Link>
               </p>
             </Card>
@@ -85,64 +87,58 @@ export default function DashboardPage() {
           {onboardingPending && (
             <Card className="border-brand-200 bg-brand-50">
               <p className="text-sm font-medium text-stone-800">
-                {combinados ? "Seus Combinados estão prontos para aprovação." : "Comece pela entrevista inicial."}
+                {combinados ? t("today.agreementsReady") : t("today.startInterview")}
               </p>
               <p className="mt-1 text-sm text-stone-600">
-                {combinados
-                  ? "Revise as metas e regras propostas pelo coach e aprove para ativar o acompanhamento."
-                  : "O coach entende seu objetivo, histórico e rotina e propõe os Combinados: metas e regras do acompanhamento."}
+                {combinados ? t("today.agreementsReadyHint") : t("today.startInterviewHint")}
               </p>
               <Link
                 to={combinados ? "/combinados" : "/onboarding"}
                 className="mt-3 inline-block rounded-xl bg-brand-700 px-4 py-2 text-sm font-medium text-white"
               >
-                {combinados ? "Revisar Combinados" : profile?.status === "skipped" ? "Retomar entrevista" : "Iniciar entrevista"}
+                {combinados ? t("today.reviewAgreements") : profile?.status === "skipped" ? t("today.resumeInterview") : t("today.beginInterview")}
               </Link>
             </Card>
           )}
 
           {!onboardingPending && pendente && pendente.id !== combinados?.id && (
             <Card className="border-amber-200 bg-amber-50">
-              <p className="text-sm font-medium text-stone-800">O coach propôs os Combinados v{pendente.versao}.</p>
-              <p className="mt-1 text-sm text-stone-600">
-                {pendente.metaKcal} kcal e {pendente.metaProteinaG} g de proteína. Até você aprovar, continua valendo a v{combinados?.versao}.
-              </p>
+              <p className="text-sm font-medium text-stone-800">{t("today.pendingProposal", { v: pendente.versao })}</p>
+              <p className="mt-1 text-sm text-stone-600">{t("today.pendingProposalHint", { kcal: pendente.metaKcal, prot: pendente.metaProteinaG, cur: combinados?.versao ?? "" })}</p>
               <Link to="/combinados" className="mt-3 inline-block rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white">
-                Revisar proposta
+                {t("today.reviewProposal")}
               </Link>
             </Card>
           )}
 
           {combinados && saldo && (
-            <Card title={`Saldo do dia · Combinados v${combinados.versao}${saldo.diaDeTreino ? " · dia de treino" : ""}`}>
+            <Card title={`${t("today.balance")} · Combinados v${combinados.versao}${saldo.diaDeTreino ? ` · ${t("today.trainingDay")}` : ""}`}>
               <div className="flex justify-around">
-                <Ring value={saldo.consumidoKcal} max={saldo.metaKcal} label="Calorias" unit="kcal" />
-                <Ring value={saldo.consumidoProteinaG} max={saldo.metaProteinaG} label="Proteína" unit="g" color="var(--color-sky-600)" />
+                <Ring value={saldo.consumidoKcal} max={saldo.metaKcal} label={t("today.calories")} unit="kcal" />
+                <Ring value={saldo.consumidoProteinaG} max={saldo.metaProteinaG} label={t("today.protein")} unit="g" color="var(--color-sky-600)" />
               </div>
               <p className="mt-3 text-center text-sm text-stone-700">
                 {saldo.restanteKcal >= 0 ? (
-                  <>
-                    Faltam <strong>{saldo.restanteKcal} kcal</strong> e <strong>{saldo.restanteProteinaG} g</strong> de proteína.
-                  </>
+                  <strong className="font-medium">{t("today.remaining", { kcal: saldo.restanteKcal, prot: saldo.restanteProteinaG })}</strong>
                 ) : (
                   <>
-                    <strong>{-saldo.restanteKcal} kcal</strong> acima da meta
-                    {saldo.restanteProteinaG > 0 ? <> e ainda faltam {saldo.restanteProteinaG} g de proteína.</> : "."}
+                    <strong>{t("today.over", { kcal: -saldo.restanteKcal })}</strong>
+                    {saldo.restanteProteinaG > 0 ? t("today.overProtein", { prot: saldo.restanteProteinaG }) : "."}
                   </>
                 )}
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <Macro label="Carbo" value={totais.carboG} min={combinados.carboMinG} max={combinados.carboMaxG} />
-                <Macro label="Gordura" value={totais.gorduraG} min={combinados.gorduraMinG} max={combinados.gorduraMaxG} />
-                <Macro label="Fibras" value={totais.fibraG} min={combinados.fibraG ?? 25} max={combinados.fibraG ?? 25} />
+                <Macro label={t("today.carbs")} value={totais.carboG} min={combinados.carboMinG} max={combinados.carboMaxG} />
+                <Macro label={t("today.fat")} value={totais.gorduraG} min={combinados.gorduraMinG} max={combinados.gorduraMaxG} />
+                <Macro label={t("today.fiber")} value={totais.fibraG} min={combinados.fibraG ?? 25} max={combinados.fibraG ?? 25} />
               </div>
             </Card>
           )}
 
-          <Card title="Refeições de hoje">
+          <Card title={t("today.meals")}>
             {!meals?.length ? (
               <p className="text-sm text-stone-500">
-                Nada registrado ainda. Conte ao coach o que comeu ou mande a foto do prato.
+                {t("today.noMeals")}
               </p>
             ) : (
               <ul className="divide-y divide-stone-100">
@@ -167,20 +163,20 @@ export default function DashboardPage() {
             )}
             {combinados && combinados.refeicoes.length > 0 && (
               <p className="mt-3 text-xs text-stone-500">
-                Combinado: {combinados.refeicoes.map((r) => `${r.nome} ${r.horario}`).join(" · ")}
+                {t("today.agreed")}: {combinados.refeicoes.map((r) => `${r.nome} ${r.horario}`).join(" · ")}
               </p>
             )}
             <Link to="/registros" className="mt-2 inline-block text-sm font-medium text-brand-700 underline">
-              Ver diário completo
+              {t("today.fullDiary")}
             </Link>
           </Card>
 
-          <Card title="Água">
+          <Card title={t("today.water")}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 <Droplets className="text-sky-600" size={20} />
                 <span>
-                  <strong>{aguaMl} ml</strong> <span className="text-stone-500">de {aguaMeta} ml</span>
+                  <strong>{aguaMl} ml</strong> <span className="text-stone-500">{t("today.of")} {aguaMeta} ml</span>
                 </span>
               </div>
               <div className="flex gap-1">
@@ -208,11 +204,11 @@ export default function DashboardPage() {
           </Suspense>
 
           {profile && (profile.pesoAtualKg || profile.objetivo) && (
-            <Card title="Perfil">
+            <Card title={t("today.profile")}>
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
                 {profile.objetivo && (
                   <>
-                    <dt className="text-stone-500">Objetivo</dt>
+                    <dt className="text-stone-500">{t("today.goal")}</dt>
                     <dd>
                       {OBJETIVO_LABEL[profile.objetivo]}
                       {profile.metaPesoKg ? ` · meta ${profile.metaPesoKg} kg` : ""}
@@ -222,21 +218,21 @@ export default function DashboardPage() {
                 )}
                 {profile.pesoAtualKg && (
                   <>
-                    <dt className="text-stone-500">Peso atual</dt>
+                    <dt className="text-stone-500">{t("today.currentWeight")}</dt>
                     <dd>{profile.pesoAtualKg} kg</dd>
                   </>
                 )}
                 {profile.alturaCm && profile.nascimento && (
                   <>
-                    <dt className="text-stone-500">Altura / idade</dt>
+                    <dt className="text-stone-500">{t("today.heightAge")}</dt>
                     <dd>
-                      {profile.alturaCm} cm · {idadeAnos(profile.nascimento)} anos
+                      {profile.alturaCm} cm · {idadeAnos(profile.nascimento)} {t("today.years")}
                     </dd>
                   </>
                 )}
               </dl>
               <Link to="/combinados" className="mt-2 inline-block text-sm font-medium text-brand-700 underline">
-                Ver Combinados
+                {t("today.viewAgreements")}
               </Link>
             </Card>
           )}

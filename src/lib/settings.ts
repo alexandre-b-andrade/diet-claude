@@ -11,12 +11,17 @@ export interface Settings {
   /** Orçamento mensal em US$ para aviso (0 = sem aviso). */
   monthlyBudgetUsd: number;
   reminders: ReminderSettings;
+  /** Busca complementar no USDA FoodData Central quando TACO não encontrar. */
+  usdaEnabled: boolean;
+  usdaApiKey: string;
+  /** Idioma da interface e do coach. */
+  language: "pt-BR" | "en";
 }
 
 const SETTINGS_KEY = "dietcoach.settings";
 const API_KEY = "dietcoach.apiKey";
 
-const DEFAULTS: Settings = { model: DEFAULT_MODEL, rememberKey: true, brlRate: 5.5, monthlyBudgetUsd: 0, reminders: REMINDER_DEFAULTS };
+const DEFAULTS: Settings = { model: DEFAULT_MODEL, rememberKey: true, brlRate: 5.5, monthlyBudgetUsd: 0, reminders: REMINDER_DEFAULTS, usdaEnabled: false, usdaApiKey: "", language: "pt-BR" };
 
 const listeners = new Set<() => void>();
 function notify() {

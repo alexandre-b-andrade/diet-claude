@@ -6,6 +6,7 @@ import CombinadosPage from "./pages/Combinados";
 import DashboardPage from "./pages/Dashboard";
 import OnboardingPage from "./pages/Onboarding";
 import RegistrosPage from "./pages/Registros";
+import RelatorioPage from "./pages/Relatorio";
 import SettingsPage from "./pages/Settings";
 import SetupPage from "./pages/Setup";
 import { getProfile } from "./lib/db";
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/chat/:conversationId" element={<ChatPage />} />
             <Route path="/registros/*" element={<RegistrosPage />} />
             <Route path="/config" element={<SettingsPage />} />
+            <Route path="/relatorio" element={<div className="h-full overflow-y-auto"><RelatorioPage /></div>} />
             <Route path="*" element={<Navigate to={home} replace />} />
           </Route>
         )}

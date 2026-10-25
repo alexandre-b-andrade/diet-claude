@@ -1,33 +1,35 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { PageHeader } from "../components/ui";
+import { useT, type Key } from "../i18n";
 import Alimentos from "./registros/Alimentos";
 import Corpo from "./registros/Corpo";
 import Documentos from "./registros/Documentos";
 import Semanas from "./registros/Semanas";
 import Refeicoes from "./registros/Refeicoes";
 
-const TABS = [
-  { to: "/registros/refeicoes", label: "Refeições" },
-  { to: "/registros/corpo", label: "Corpo" },
-  { to: "/registros/alimentos", label: "Alimentos" },
-  { to: "/registros/documentos", label: "Documentos" },
-  { to: "/registros/semanas", label: "Semanas" },
+const TABS: { to: string; label: Key }[] = [
+  { to: "/registros/refeicoes", label: "records.meals" },
+  { to: "/registros/corpo", label: "records.body" },
+  { to: "/registros/alimentos", label: "records.foods" },
+  { to: "/registros/documentos", label: "records.documents" },
+  { to: "/registros/semanas", label: "records.weeks" },
 ];
 
 export default function RegistrosPage() {
+  const { t } = useT();
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title="Registros" />
+      <PageHeader title={t("records.title")} />
       <nav className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4">
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <NavLink
-            key={t.to}
-            to={t.to}
+            key={tab.to}
+            to={tab.to}
             className={({ isActive }) =>
               `shrink-0 border-b-2 px-3 py-2 text-sm ${isActive ? "border-brand-700 font-medium text-brand-800" : "border-transparent text-stone-500"}`
             }
           >
-            {t.label}
+            {t(tab.label)}
           </NavLink>
         ))}
       </nav>

@@ -7,6 +7,7 @@ import { backupFileName, exportBackup, importBackup, validateBackup } from "../l
 import { useRef } from "react";
 import { MODELS, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
+import { useT } from "../i18n";
 
 function startOfMonth() {
   const d = new Date();
@@ -16,6 +17,7 @@ function startOfMonth() {
 export default function SettingsPage() {
   const { settings, apiKey, update, updateApiKey } = useSettings();
   const [newKey, setNewKey] = useState("");
+  const { t } = useT();
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const rem = settings.reminders;
@@ -63,10 +65,21 @@ export default function SettingsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <PageHeader title="Configurações" />
+      <PageHeader title={t("settings.title")} />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
-          <Card title="Coach">
+          <Card title={t("settings.language")}>
+            <div className="flex gap-1 text-sm">
+              {(["pt-BR", "en"] as const).map((l) => (
+                <button key={l} onClick={() => update({ language: l })} className={`rounded-full px-3 py-1 ${settings.language === l ? "bg-brand-700 text-white" : "bg-stone-100 text-stone-600"}`}>
+                  {l === "pt-BR" ? "Português (Brasil)" : "English"}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-stone-500">{t("settings.languageHint")}</p>
+          </Card>
+
+          <Card title={t("settings.coach")}>
             <p className="text-sm text-stone-600">
               {combinados
                 ? `Combinados v${combinados.versao} ${combinados.status === "aprovado" ? "aprovados" : "aguardando aprovação"}.`
@@ -82,7 +95,33 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          <Card title="Modelo">
+          <Card title={t("settings.report")}>
+            <p className="text-sm text-stone-600">{t("settings.reportHint")}</p>
+            <Link to="/relatorio" className="mt-3 inline-block rounded-xl bg-stone-100 px-4 py-2 text-sm font-medium text-stone-800">
+              {t("settings.openReport")}
+            </Link>
+          </Card>
+
+          <Card title={t("settings.usda")}>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={settings.usdaEnabled} onChange={(e) => update({ usdaEnabled: e.target.checked })} />
+              {t("settings.usdaEnable")}
+            </label>
+            {settings.usdaEnabled && (
+              <label className="mt-2 block text-xs text-stone-500">
+                {t("settings.usdaKey")}
+                <Input type="password" placeholder="DEMO_KEY" value={settings.usdaApiKey} onChange={(e) => update({ usdaApiKey: e.target.value.trim() })} />
+              </label>
+            )}
+            <p className="mt-2 text-xs text-stone-500">
+              {t("settings.usdaHint")}{" "}
+              <a className="underline" href="https://fdc.nal.usda.gov/api-key-signup" target="_blank" rel="noreferrer">
+                fdc.nal.usda.gov
+              </a>
+            </p>
+          </Card>
+
+          <Card title={t("settings.model")}>
             <div className="space-y-2">
               {MODELS.map((m) => (
                 <label key={m.id} className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 p-3 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
@@ -105,7 +144,7 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          <Card title="Uso e custo estimado">
+          <Card title={t("settings.usage")}>
             <dl className="grid grid-cols-[1fr_auto] gap-y-1 text-sm">
               <dt className="text-stone-500">Este mês</dt>
               <dd className="text-right font-medium">
@@ -151,7 +190,7 @@ export default function SettingsPage() {
             </p>
           </Card>
 
-          <Card title="API key">
+          <Card title={t("settings.apiKey")}>
             <p className="text-sm">
               Chave atual: <code className="rounded bg-stone-100 px-1">{masked}</code>
             </p>
@@ -189,7 +228,7 @@ export default function SettingsPage() {
             </Button>
           </Card>
 
-          <Card title="Lembretes">
+          <Card title={t("settings.reminders")}>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={rem.enabled} onChange={(e) => update({ reminders: { ...rem, enabled: e.target.checked } })} />
               Ativar lembretes
@@ -262,7 +301,7 @@ export default function SettingsPage() {
             )}
           </Card>
 
-          <Card title="Backup">
+          <Card title={t("settings.backup")}>
             <p className="text-sm text-stone-600">Exporte um arquivo JSON com tudo (conversas, diário, medidas, documentos). Use para trocar de aparelho ou guardar uma cópia.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button onClick={doExport}>Exportar backup</Button>
@@ -277,7 +316,7 @@ export default function SettingsPage() {
             {backupMsg && <p className="mt-2 text-xs text-stone-600">{backupMsg}</p>}
           </Card>
 
-          <Card title="Dados">
+          <Card title={t("settings.data")}>
             <p className="text-sm text-stone-600">Tudo fica neste aparelho.</p>
             <Button
               variant="danger"

@@ -1,6 +1,6 @@
 # Diet Coach PWA — Escopo e Roadmap (v0.2, validado)
 
-> Status: **validado em 2026-10-25**. As perguntas da v0.1 foram respondidas e as decisões estão consolidadas na seção 7. Progresso: F0 a F5 entregues; F6 é a próxima.
+> Status: **validado em 2026-10-25**. As perguntas da v0.1 foram respondidas e as decisões estão consolidadas na seção 7. Progresso: F0 a F6 entregues. Sincronização em nuvem permanece fora do escopo (ver seção 9).
 
 ---
 
@@ -205,4 +205,5 @@ Estimativa: F0–F2 formam o MVP real. Sugiro validar com 2–3 usuários ao fim
 5. ~~F3~~: ferramentas de corpo (`registrar_peso`, `registrar_medida`, `registrar_bioimpedancia`, `registrar_treino`, `registrar_dia`, `registrar_exame`, `consultar_historico`), aba Registros › Corpo com formulários e histórico, média móvel de 7 dias, tendência semanal por regressão, projeção da meta, saldo com ajuste em dia de treino, gráficos de peso vs meta, cintura, bioimpedância e aderência de 7 dias no dashboard; resumo corporal no contexto do coach (feito).
 6. ~~F4~~: biblioteca de documentos com ferramentas (`salvar_documento`, `atualizar_documento`, `remover_documento`, `consultar_documento`), upload em Registros › Documentos que encaminha o PDF ou foto ao coach, resumo estruturado em Markdown guardado no aparelho (arquivo descartado), planos e orientações completos no contexto do coach e os demais em uma linha com consulta sob demanda (feito).
 7. ~~F5~~: fechamento semanal (métricas calculadas no app, análise e ajustes pelo coach via `salvar_fechamento`, histórico em Registros › Semanas), insights determinísticos no dashboard (proteína, kcal, ritmo de peso, pesagem e cintura atrasadas, água, treinos), lembretes locais configuráveis com notificação quando o app está aberto, backup JSON exportar e importar (mesclar ou substituir), resumo automático de conversas longas com Haiku, orçamento mensal com aviso (feito).
-8. **F6 (próxima)**: USDA opcional, relatório para o nutricionista, i18n.
+8. ~~F6~~: busca complementar no USDA FoodData Central (opcional, com chave própria ou DEMO_KEY, resultados salvos para reuso offline), relatório imprimível para o nutricionista (perfil, Combinados, peso com tendência, medidas, bioimpedância, alimentação por semana, diário recente, exames, fechamentos, documentos; salvar como PDF pelo navegador), idioma pt-BR ou inglês para a interface principal e para as respostas do coach (telas de registro detalhadas permanecem em português) (feito).
+9. **Sincronização em nuvem**: não implementada por decisão de escopo (zero backend, dados só no aparelho). Caminho atual: exportar e importar backup JSON. Se desejado no futuro, a opção menos invasiva é sync opcional via Supabase com criptografia no cliente.

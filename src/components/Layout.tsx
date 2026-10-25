@@ -1,14 +1,16 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { LayoutDashboard, MessageCircle, NotebookPen, Settings } from "lucide-react";
+import { useT, type Key } from "../i18n";
 
-const tabs = [
-  { to: "/hoje", label: "Hoje", icon: LayoutDashboard },
-  { to: "/chat", label: "Coach", icon: MessageCircle },
-  { to: "/registros", label: "Registros", icon: NotebookPen },
-  { to: "/config", label: "Config", icon: Settings },
+const tabs: { to: string; label: Key; icon: typeof LayoutDashboard }[] = [
+  { to: "/hoje", label: "nav.today", icon: LayoutDashboard },
+  { to: "/chat", label: "nav.coach", icon: MessageCircle },
+  { to: "/registros", label: "nav.records", icon: NotebookPen },
+  { to: "/config", label: "nav.settings", icon: Settings },
 ];
 
 export default function Layout() {
+  const { t } = useT();
   return (
     <div className="flex h-full flex-col">
       <main className="flex-1 overflow-hidden">
@@ -27,7 +29,7 @@ export default function Layout() {
                 }
               >
                 <Icon size={22} strokeWidth={1.75} />
-                {label}
+                {t(label)}
               </NavLink>
             </li>
           ))}

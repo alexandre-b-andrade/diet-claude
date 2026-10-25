@@ -2,6 +2,7 @@ import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile, type Activ
 import { addDays, todayKey } from "../lib/dates";
 import { calcularSaldo, resumoDia, somarRefeicoes, type Saldo } from "../lib/diary";
 import { mediaMovel, projecao, tendencia, umPorDia } from "../lib/body";
+import { loadSettings } from "../lib/settings";
 
 /** Tudo o que o coach precisa saber além do prompt fixo. */
 export interface CoachContext {
@@ -18,6 +19,7 @@ export interface CoachContext {
   /** Resumo textual de peso, medidas, bioimpedância, sono/passos e exames recentes. */
   corpo: string;
   documentos: UserDocument[];
+  language: "pt-BR" | "en";
 }
 
 export async function loadCoachContext(): Promise<CoachContext> {
@@ -49,6 +51,7 @@ export async function loadCoachContext(): Promise<CoachContext> {
     treinosHoje,
     corpo,
     documentos: documentos.sort((a, b) => b.createdAt - a.createdAt),
+    language: loadSettings().language,
   };
 }
 
