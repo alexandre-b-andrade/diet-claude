@@ -1,6 +1,6 @@
-# Diet Coach PWA — Proposta de Escopo e Roadmap (v0.1, para validação)
+# Diet Coach PWA — Escopo e Roadmap (v0.2, validado)
 
-> Status: **rascunho para validação**. Nada de código ainda. Este documento registra o entendimento do escopo, as decisões propostas, as perguntas abertas e um roadmap em fases. Após sua validação ele vira a referência do projeto.
+> Status: **validado em 2026-10-25**. As perguntas da v0.1 foram respondidas e as decisões estão consolidadas na seção 7. Implementação iniciada pela Fase 0.
 
 ---
 
@@ -36,7 +36,7 @@ Fluxo diário esperado:
 
 ### 3.1 Configuração e segurança
 - Tela de **API key** (armazenada localmente, com opção de "lembrar neste dispositivo" ou somente em sessão). Validação da chave com uma chamada mínima.
-- Seleção de **modelo** (padrão proposto: `claude-sonnet-5-5` para conversa; `claude-haiku-5-5` para extrações baratas em lote como classificar refeições; `claude-opus-5-5` como opção "qualidade máxima"). O usuário vê custo estimado por mês conforme uso.
+- Seleção de **modelo** (padrão: `claude-opus-5-5` para conversa; `claude-haiku-5-5` para extrações baratas em lote como classificar refeições; `claude-sonnet-5-5` como opção mais econômica). O usuário vê custo estimado por mês conforme uso.
 - Aviso claro de privacidade: dados ficam no aparelho, apenas o conteúdo das conversas vai para a Anthropic.
 - Disclaimer de saúde: não substitui nutricionista/médico.
 
@@ -49,7 +49,7 @@ Entrevista conduzida pelo coach, em etapas, com progresso visível:
 5. **Combinados**: o coach propõe e o usuário aprova/ajusta:
    - meta calórica diária e meta de proteína (g/kg), faixas de carbo/gordura;
    - número de refeições e janelas de horário;
-   - o que conta como "fora da dieta" e quantas "refeições livres" por semana;
+   - o que conta como "fora da dieta" (saldo do dia + qualidade dos alimentos; sem cota de refeições livres);
    - frequência de pesagem e medição de cintura; frequência de bioimpedância;
    - tom do coach (direto / acolhedor / técnico) e nível de detalhe.
 6. Resultado: um **documento "Combinados"** estruturado (JSON + versão legível), editável e versionado. É a base do system prompt dali em diante.
@@ -73,7 +73,7 @@ Entrevista conduzida pelo coach, em etapas, com progresso visível:
 
 ### 3.6 Dashboard
 - **Hoje**: kcal consumidas vs meta (anel), proteína vs meta, macros, refeições registradas e pendentes, água (opcional).
-- **Tendências**: peso vs meta com média móvel de 7 dias e projeção; cintura; % gordura e massa magra por bioimpedância; aderência semanal (dias dentro do plano, refeições livres usadas).
+- **Tendências**: peso vs meta com média móvel de 7 dias e projeção; cintura; % gordura e massa magra por bioimpedância; aderência semanal (dias dentro da meta, refeições sinalizadas por qualidade).
 - **Semana**: resumo gerado pelo coach ("fechamento da semana") com ajustes propostos nos combinados.
 - Insights contextuais ("sua proteína está abaixo da meta em 5 dos últimos 7 dias").
 
@@ -139,40 +139,54 @@ Estimativa: F0–F2 formam o MVP real. Sugiro validar com 2–3 usuários ao fim
 
 ---
 
-## 7. Perguntas abertas (preciso das respostas para fechar o escopo)
+## 7. Decisões validadas (respostas às perguntas da v0.1)
 
-### Sobre o chat Dieta e o B3 app
-1. **Chat Dieta**: não tenho acesso a ele a partir deste repositório. Pode colar aqui as **instruções do projeto/system prompt**, o estilo de resposta esperado e 2–3 exemplos de interações típicas (registro de refeição, pedido de sugestão, análise de bioimpedância)? Isso define o comportamento do coach.
-2. **B3 app**: qual stack ele usa (React? Vite? outra), como guarda a API key e como chama a API (SDK no browser ou fetch)? Posso reaproveitar a mesma abordagem e até componentes.
-
-### Público e distribuição
-3. Público inicial: amigos/família (dezenas) ou aberto ao público? Isso muda o peso de onboarding, disclaimers e suporte.
-4. Hospedagem: GitHub Pages neste repositório está bom? Precisa de domínio próprio?
-5. Idioma: só pt-BR no v1?
-
-### Dados e persistência
-6. Confirma **somente local + backup JSON** no v1 (sem login, sem nuvem)? Trocar de celular = exportar/importar.
-7. Fotos de refeições e PDFs ficam guardados no aparelho (ocupam espaço) ou só o resumo extraído?
-
-### Funcionalidades
-8. Base de alimentos: TACO embutida é suficiente? Quer também USDA (inglês) ou outra tabela que você já usa no chat Dieta?
-9. Bioimpedância: quais campos você acompanha hoje (gordura %, massa muscular, visceral, água, TMB…)? Qual aparelho/laudo (para testar a leitura por foto)?
-10. Plano alimentar: o coach deve **seguir** o plano do nutricionista quando existir, **gerar** um plano próprio quando não existir, ou ambos?
-11. Treino/exercício: registrar atividade física e ajustar meta calórica do dia, ou fica fora?
-12. Água, sono, passos: algum deles entra no tracking do v1?
-13. Exames laboratoriais (glicemia, colesterol, etc.): entram como contexto para o coach?
-14. "Refeições livres": você usa esse conceito (ex.: 2 por semana)? Como define "fora da dieta" hoje?
-15. Lembretes: notificação local (só funciona com app instalado e, no iOS, com limitações) é aceitável no v1, ou deixamos para depois?
+### Público, distribuição e dados
+| Tema | Decisão |
+|---|---|
+| Público inicial | Amigos e família (dezenas de usuários). |
+| Persistência | Somente local (IndexedDB) + exportar/importar backup JSON. Sem login, sem nuvem. |
+| Arquivos enviados | Fotos e PDFs são processados e descartados; fica apenas o resumo estruturado extraído. |
+| Hospedagem | GitHub Pages neste repositório, deploy por GitHub Actions. |
+| Idioma | Somente pt-BR no v1 (estrutura preparada para i18n). |
+| Stack | Vite + React + TypeScript + Tailwind + Dexie + Recharts; SDK oficial da Anthropic no browser. |
+| Testes | Mínimo nos fluxos críticos: Vitest nos cálculos e no banco local, Playwright no onboarding e no registro de refeição. |
 
 ### Modelo e custo
-16. Modelo padrão: proposta é Sonnet 5.5 para conversa e Haiku 5.5 para extrações. Prefere Opus 5.5 como padrão (mais caro, mais capaz)?
-17. Quer que o app mostre ao usuário uma estimativa de custo em R$/US$ por mês?
+| Tema | Decisão |
+|---|---|
+| Modelo padrão | **Claude Opus 5.5** (`claude-opus-5-5`) para a conversa. Haiku 5.5 para extrações simples em lote. Usuário pode trocar nas configurações. |
+| API key | Informada pelo usuário e salva em `localStorage` (opção de não salvar). Mesmo princípio do B3 app, que usa `fetch` direto; aqui usamos o SDK oficial, que suporta streaming, PDFs e tool use sem código manual. |
+| Custo | App mostra tokens acumulados e estimativa em US$ e R$ por mês nas configurações. |
 
-### Técnico
-18. Stack proposta (Vite + React + TS + Tailwind + Dexie): ok, ou prefere algo que você já domine do B3 app?
-19. Testes automatizados: nível desejado (mínimo nos fluxos críticos vs cobertura ampla)?
+### Comportamento do coach (equivalente ao chat Dieta)
+| Tema | Decisão |
+|---|---|
+| Tom | **Técnico e detalhado**: explica o porquê nutricional, cita macros, fibras, qualidade dos alimentos. |
+| Registro de refeição | Texto livre **ou foto do prato**. Resposta sempre com kcal e macros da refeição **e o saldo do dia** (o que falta de kcal e proteína até a meta, com sugestão para as próximas refeições). |
+| Dentro/fora da dieta | **Saldo + qualidade**: o saldo calórico e proteico do dia manda, mas o coach sinaliza ultraprocessados, açúcar e frituras. Sem cota de refeições livres; abordagem flexível por calorias. |
+| Metas diárias | Calculadas a partir de TMB (Mifflin-St Jeor ou TMB da balança) × fator de atividade, com déficit ou superávit definido nos Combinados. Proteína em g/kg. |
+| Plano alimentar | Segue o plano do nutricionista quando existir; propõe plano próprio nos Combinados quando não houver. |
+| Sugestões de refeição | Pelo que falta no dia, pelo que o usuário tem em casa e pela rotina e preferências dos Combinados. |
+| Dias de treino | Ajusta kcal e carboidratos em dias de treino. |
+| Suplementação | Orienta whey, creatina, vitaminas etc. conforme metas e exames, sempre com ressalva de confirmar com profissional. |
+| Análises periódicas | Fechamento semanal, leitura comparativa da bioimpedância, projeção de quando a meta será atingida. |
 
----
+### Tracking
+| Tema | Decisão |
+|---|---|
+| Peso | 3 vezes por semana, com lembrete. Dashboard usa média móvel para suavizar. |
+| Cintura | Semanal, com lembrete. |
+| Bioimpedância | Manual **ou** foto/PDF do laudo com extração e confirmação. Fonte principal: balança doméstica (Omron, Xiaomi etc.). Campos: % gordura e massa gorda, massa magra/muscular, gordura visceral, água, TMB, idade metabólica. |
+| Outros itens no v1 | Treino/atividade física (ajusta meta do dia), água, sono e passos (manual), exames laboratoriais como contexto. |
+| Base de alimentos | TACO embutida + tabelas próprias do usuário + código de barras (Open Food Facts) + USDA como complemento. |
+| Lembretes | Notificação local no v1 (registro, pesagem, cintura). Push com servidor fica fora. |
+
+### Impacto no roadmap
+- **F2** passa a incluir água e código de barras (Open Food Facts) além do diário alimentar.
+- **F3** passa a incluir treino, sono, passos e exames laboratoriais, além de peso, cintura e bioimpedância.
+- **F5** mantém lembretes locais, fechamento semanal, backup e custo.
+- **F6** fica com USDA, relatório PDF para nutricionista e i18n.
 
 ## 8. Riscos e cuidados
 - **Precisão nutricional**: estimativas por foto têm erro alto; o app deve mostrar faixas e pedir confirmação de porções.
@@ -184,6 +198,6 @@ Estimativa: F0–F2 formam o MVP real. Sugiro validar com 2–3 usuários ao fim
 ---
 
 ## 9. Próximos passos
-1. Você responde às perguntas da seção 7 (pode ser direto no chat).
-2. Ajusto este documento (v0.2) e fechamos o roadmap.
-3. Início da F0.
+1. ~~Validar escopo~~ (feito).
+2. **F0 em andamento**: scaffold, PWA, tela de API key, chat com streaming, deploy no GitHub Pages.
+3. F1: onboarding e Combinados.
