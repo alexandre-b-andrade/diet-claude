@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { Droplets, MessageCircle } from "lucide-react";
+import InstallCard from "../components/InstallCard";
 import Insights from "../components/Insights";
 import RemindersCard from "../components/RemindersCard";
 import Ring from "../components/Ring";
@@ -72,6 +73,7 @@ export default function DashboardPage() {
       />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
+          <InstallCard dismissible />
           <RemindersCard due={due} onDone={done} onSnooze={snooze} />
           {budget > 0 && gastoMes >= budget * 0.8 && (
             <Card className={gastoMes >= budget ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}>

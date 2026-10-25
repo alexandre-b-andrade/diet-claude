@@ -9,6 +9,7 @@ import { useRef } from "react";
 import { MODELS, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
 import { useT } from "../i18n";
+import InstallCard from "../components/InstallCard";
 
 function startOfMonth() {
   const d = new Date();
@@ -80,6 +81,8 @@ export default function SettingsPage() {
       <PageHeader title={t("settings.title")} />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
+          <InstallCard showWhenInstalled />
+
           <Card title={t("settings.language")}>
             <div className="flex gap-1 text-sm">
               {(["pt-BR", "en"] as const).map((l) => (
