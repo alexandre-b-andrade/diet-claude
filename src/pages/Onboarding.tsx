@@ -60,11 +60,11 @@ export default function OnboardingPage() {
           </button>
         }
       />
-      <ol className="flex gap-1 overflow-x-auto border-b border-stone-200 bg-white px-4 py-2 text-xs">
+      <ol className="flex flex-wrap gap-1 border-b border-stone-200 bg-white px-4 py-2 text-xs">
         {STEPS.map((s, i) => (
           <li
             key={s}
-            className={`shrink-0 rounded-full px-2.5 py-1 ${
+            className={`rounded-full px-2.5 py-1 ${
               done[i] ? "bg-brand-100 text-brand-800" : "bg-stone-100 text-stone-500"
             }`}
           >
