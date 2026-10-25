@@ -90,6 +90,18 @@ export const pt = {
   "settings.usdaHint": "Quando a TACO não encontrar um alimento, busca na base americana. Sem chave usa DEMO_KEY, com limite baixo por hora.",
   "settings.usdaEnable": "Habilitar busca no USDA",
   "settings.usdaKey": "Chave da API (opcional)",
+  // instalação
+  "install.title": "Instale o app no celular",
+  "install.why": "Fica com ícone na tela inicial, abre em tela cheia, funciona offline para consultar seus dados e recebe lembretes.",
+  "install.button": "Instalar app",
+  "install.done": "App instalado neste aparelho.",
+  "install.dismiss": "Fechar",
+  "install.ios1": "No Safari, toque em Compartilhar",
+  "install.ios2": "Role e toque em \"Adicionar à Tela de Início\".",
+  "install.ios3": "Toque em \"Adicionar\" no canto superior direito.",
+  "install.iosNote": "No iPhone, só o app instalado pode receber notificações e guardar os dados de forma estável.",
+  "install.manual1": "Abra o menu do navegador (três pontos ou ícone de instalar na barra de endereço).",
+  "install.manual2": "Toque em \"Instalar app\" ou \"Adicionar à tela inicial\".",
   // relatório
   "report.title": "Relatório de acompanhamento",
   "report.print": "Imprimir / salvar PDF",

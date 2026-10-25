@@ -4,6 +4,7 @@ import { Button, Input } from "../components/ui";
 import { describeError, validateApiKey } from "../lib/claude";
 import { useSettings } from "../lib/settings";
 import { useT } from "../i18n";
+import InstallCard from "../components/InstallCard";
 
 export default function SetupPage() {
   const { settings, updateApiKey, update } = useSettings();
@@ -30,7 +31,7 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-md flex-col justify-center px-6 py-10">
+    <div className="mx-auto min-h-full max-w-md overflow-y-auto px-6 py-10">
       <div className="mb-8 text-center">
         <img src="icons/icon.svg" alt="" className="mx-auto mb-4 h-20 w-20" />
         <h1 className="text-2xl font-semibold">Diet Coach</h1>
@@ -87,7 +88,9 @@ export default function SetupPage() {
         </Button>
       </form>
 
-      <div className="mt-8 flex gap-3 rounded-2xl bg-brand-50 p-4 text-xs text-stone-700">
+      <InstallCard className="mt-6" />
+
+      <div className="mt-4 flex gap-3 rounded-2xl bg-brand-50 p-4 text-xs text-stone-700">
         <ShieldCheck className="shrink-0 text-brand-700" size={20} />
         <p>{t("setup.privacy")}</p>
       </div>
