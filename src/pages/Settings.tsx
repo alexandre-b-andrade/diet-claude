@@ -10,6 +10,8 @@ import { MODELS, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
 import { useT } from "../i18n";
 import InstallCard from "../components/InstallCard";
+import Diagnostics from "../components/Diagnostics";
+import { APP_VERSION } from "../lib/diag";
 
 function startOfMonth() {
   const d = new Date();
@@ -358,8 +360,10 @@ export default function SettingsPage() {
             </Button>
           </Card>
 
+          <Diagnostics />
+
           <p className="px-1 text-xs text-stone-500">
-            Diet Coach v0.1 · Este app não substitui nutricionista ou médico.
+            Diet Coach {APP_VERSION} · Este app não substitui nutricionista ou médico.
           </p>
         </div>
       </div>

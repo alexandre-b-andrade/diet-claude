@@ -65,6 +65,10 @@ export const pt = {
   "chat.send": "Enviar",
   "chat.stop": "Parar",
   "chat.attachments": "Anexos",
+  "chat.thinking": "O coach está pensando… respostas com cálculos podem levar até um minuto.",
+  "chat.writing": "O coach está respondendo…",
+  "chat.wait": "Aguarde a resposta terminar…",
+  "chat.retry": "Tentar novamente",
   // registros
   "records.title": "Registros",
   "records.meals": "Refeições",

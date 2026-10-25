@@ -5,6 +5,7 @@ import { describeError, runTurn, userContent, type HistoryTurn, type ToolEvent }
 import { db, type ChatMessage, type Conversation } from "../lib/db";
 import { estimateCostUsd } from "../lib/pricing";
 import { summarizeMessages } from "../lib/summarize";
+import { logError } from "../lib/diag";
 import { useSettings } from "../lib/settings";
 import { buildSystemBlocks, type CoachMode } from "../coach/systemPrompt";
 import { loadCoachContext } from "../coach/context";
@@ -38,24 +39,42 @@ export function useCoachChat(conversationId: number | undefined, mode: CoachMode
 
   const send = useCallback(
     async (text: string, attachments: Attachment[] = []) => {
-      if (conversationId === undefined || !apiKey || streaming) return;
+      if (streaming) {
+        setError("Aguarde a resposta atual terminar ou toque em Parar.");
+        return;
+      }
+      if (conversationId === undefined) {
+        setError("Conversa ainda não carregada. Tente de novo em um instante.");
+        logError("send", new Error("conversationId undefined"));
+        return;
+      }
+      if (!apiKey) {
+        setError("API key não encontrada. Configure em Configurações.");
+        return;
+      }
       const trimmed = text.trim();
       if (!trimmed && !attachments.length) return;
       setError(null);
 
-      const now = Date.now();
-      const isFirst = !(messages?.length ?? 0);
-      await db.messages.add({
-        conversationId,
-        role: "user",
-        content: trimmed || "(anexo)",
-        attachments: attachments.map((a) => a.name),
-        createdAt: now,
-      });
-      await db.conversations.update(conversationId, {
-        updatedAt: now,
-        ...(isFirst && mode === "coach" ? { title: (trimmed || attachments[0]?.name || "Conversa").slice(0, 60) } : {}),
-      });
+      try {
+        const now = Date.now();
+        const isFirst = !(messages?.length ?? 0);
+        await db.messages.add({
+          conversationId,
+          role: "user",
+          content: trimmed || "(anexo)",
+          attachments: attachments.map((a) => a.name),
+          createdAt: now,
+        });
+        await db.conversations.update(conversationId, {
+          updatedAt: now,
+          ...(isFirst && mode === "coach" ? { title: (trimmed || attachments[0]?.name || "Conversa").slice(0, 60) } : {}),
+        });
+      } catch (err) {
+        logError("send.db", err);
+        setError(`Não foi possível gravar a mensagem no aparelho: ${describeError(err)}`);
+        return;
+      }
 
       await run(conversationId, attachments);
     },
@@ -137,6 +156,7 @@ export function useCoachChat(conversationId: number | undefined, mode: CoachMode
         });
         if (result.stopReason === "refusal") setError("O modelo recusou responder a esta mensagem.");
       } catch (err) {
+        logError("coach.run", err);
         const msg = describeError(err);
         if (state.text) {
           await db.messages.add({

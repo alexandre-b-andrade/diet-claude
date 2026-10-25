@@ -6,6 +6,8 @@ import ChatView from "../components/ChatView";
 import { PageHeader } from "../components/ui";
 import { createConversation, useCoachChat } from "../hooks/useCoachChat";
 import { db, getCombinadosAtivos, getProfile, upsertProfile } from "../lib/db";
+import { Button } from "../components/ui";
+import { useT } from "../i18n";
 
 const STEPS = ["Objetivo", "Dados", "Histórico", "Rotina", "Atividade", "Combinados"] as const;
 
@@ -16,6 +18,8 @@ export default function OnboardingPage() {
   const combinados = useLiveQuery(getCombinadosAtivos, []);
   const chat = useCoachChat(conv?.id, "onboarding");
   const started = useRef(false);
+  const { t } = useT();
+  const aberturaFalhou = Boolean(chat.error) && !chat.streaming && (chat.messages?.filter((m) => m.role === "assistant").length ?? 0) === 0;
 
   // Cria a conversa da entrevista e deixa o coach abrir com a primeira pergunta.
   useEffect(() => {
@@ -82,7 +86,11 @@ export default function OnboardingPage() {
           onStop={chat.stop}
           placeholder="Responda aqui… pode anexar laudo, plano ou foto"
           footer={
-            combinados ? (
+            aberturaFalhou && conv?.id ? (
+              <Button variant="ghost" className="w-full" onClick={() => void chat.run(conv.id!)}>
+                {t("chat.retry")}
+              </Button>
+            ) : combinados ? (
               <Link
                 to="/combinados"
                 className="flex items-center justify-center gap-2 rounded-xl bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-800"
