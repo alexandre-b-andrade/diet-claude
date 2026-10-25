@@ -49,11 +49,11 @@ export default function RelatorioPage() {
 
   return (
     <div className="relatorio mx-auto max-w-3xl bg-white px-6 py-6 text-sm text-stone-900 print:px-0">
-      <div className="no-print mb-4 flex items-center justify-between">
+      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link to="/config" className="flex items-center gap-1 text-sm text-stone-600">
           <ArrowLeft size={16} /> {t("settings.title")}
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-stone-500">{t("report.period")}</span>
           {PERIODOS.map((p) => (
             <button key={p} onClick={() => setDias(p)} className={`rounded-full px-3 py-1 text-xs ${dias === p ? "bg-brand-700 text-white" : "bg-stone-100 text-stone-600"}`}>

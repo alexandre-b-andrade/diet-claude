@@ -114,8 +114,8 @@ export default function DashboardPage() {
           {combinados && saldo && (
             <Card title={`${t("today.balance")} · Combinados v${combinados.versao}${saldo.diaDeTreino ? ` · ${t("today.trainingDay")}` : ""}`}>
               <div className="flex justify-around">
-                <Ring value={saldo.consumidoKcal} max={saldo.metaKcal} label={t("today.calories")} unit="kcal" />
-                <Ring value={saldo.consumidoProteinaG} max={saldo.metaProteinaG} label={t("today.protein")} unit="g" color="var(--color-sky-600)" />
+                <Ring value={saldo.consumidoKcal} max={saldo.metaKcal} label={t("today.calories")} unit="kcal" ofLabel={t("today.of")} />
+                <Ring value={saldo.consumidoProteinaG} max={saldo.metaProteinaG} label={t("today.protein")} unit="g" color="var(--color-sky-600)" ofLabel={t("today.of")} />
               </div>
               <p className="mt-3 text-center text-sm text-stone-700">
                 {saldo.restanteKcal >= 0 ? (

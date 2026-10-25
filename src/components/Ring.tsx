@@ -6,6 +6,7 @@ export default function Ring({
   unit,
   size = 120,
   color = "var(--color-brand-600)",
+  ofLabel = "de",
 }: {
   value: number;
   max: number;
@@ -13,6 +14,7 @@ export default function Ring({
   unit: string;
   size?: number;
   color?: string;
+  ofLabel?: string;
 }) {
   const pct = max > 0 ? Math.min(value / max, 1.25) : 0;
   const over = max > 0 && value > max;
@@ -38,7 +40,7 @@ export default function Ring({
           {Math.round(value)}
         </text>
         <text x="50%" y="64%" textAnchor="middle" className="fill-stone-500" style={{ fontSize: size * 0.1 }}>
-          de {Math.round(max)} {unit}
+          {ofLabel} {Math.round(max)} {unit}
         </text>
       </svg>
       <span className="mt-1 text-xs text-stone-600">{label}</span>
