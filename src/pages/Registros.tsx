@@ -1,10 +1,12 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { PageHeader } from "../components/ui";
 import Alimentos from "./registros/Alimentos";
+import Corpo from "./registros/Corpo";
 import Refeicoes from "./registros/Refeicoes";
 
 const TABS = [
   { to: "/registros/refeicoes", label: "Refeições" },
+  { to: "/registros/corpo", label: "Corpo" },
   { to: "/registros/alimentos", label: "Alimentos" },
 ];
 
@@ -30,6 +32,7 @@ export default function RegistrosPage() {
           <Routes>
             <Route index element={<Navigate to="refeicoes" replace />} />
             <Route path="refeicoes" element={<Refeicoes />} />
+            <Route path="corpo" element={<Corpo />} />
             <Route path="alimentos" element={<Alimentos />} />
           </Routes>
         </div>

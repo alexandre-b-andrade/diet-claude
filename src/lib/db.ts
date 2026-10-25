@@ -172,7 +172,71 @@ export interface CustomFood {
   createdAt: number;
 }
 
+export type MedidaTipo = "peso" | "cintura" | "quadril" | "pescoco" | "peito" | "braco" | "coxa";
+
+export interface Measurement {
+  id?: number;
+  date: string;
+  tipo: MedidaTipo;
+  /** kg para peso, cm para as demais. */
+  valor: number;
+  notas?: string;
+  createdAt: number;
+}
+
+export interface BioimpedanceEntry {
+  id?: number;
+  date: string;
+  pesoKg?: number;
+  gorduraPct?: number;
+  massaGordaKg?: number;
+  massaMagraKg?: number;
+  massaMuscularKg?: number;
+  gorduraVisceral?: number;
+  aguaPct?: number;
+  tmbKcal?: number;
+  idadeMetabolica?: number;
+  fonte?: string;
+  createdAt: number;
+}
+
+export interface Activity {
+  id?: number;
+  date: string;
+  tipo: string;
+  duracaoMin: number;
+  intensidade: "leve" | "moderada" | "intensa";
+  kcal?: number;
+  notas?: string;
+  createdAt: number;
+}
+
+/** Registro diário de sono e passos (uma linha por dia). */
+export interface DailyLog {
+  date: string;
+  sonoHoras?: number;
+  passos?: number;
+  notas?: string;
+  updatedAt: number;
+}
+
+export interface LabResult {
+  id?: number;
+  date: string;
+  exame: string;
+  valor: number;
+  unidade?: string;
+  referencia?: string;
+  notas?: string;
+  createdAt: number;
+}
+
 class DietCoachDB extends Dexie {
+  measurements!: EntityTable<Measurement, "id">;
+  bioimpedance!: EntityTable<BioimpedanceEntry, "id">;
+  activities!: EntityTable<Activity, "id">;
+  daily!: EntityTable<DailyLog, "date">;
+  labs!: EntityTable<LabResult, "id">;
   conversations!: EntityTable<Conversation, "id">;
   messages!: EntityTable<ChatMessage, "id">;
   usage!: EntityTable<UsageRecord, "id">;
@@ -215,6 +279,21 @@ class DietCoachDB extends Dexie {
       water: "++id, date",
       foods: "++id, nome, fonte, codigoBarras",
     });
+    this.version(4).stores({
+      conversations: "++id, kind, updatedAt",
+      messages: "++id, conversationId, createdAt",
+      usage: "++id, createdAt, model",
+      profile: "id",
+      combinados: "++id, versao, status",
+      meals: "++id, date, createdAt",
+      water: "++id, date",
+      foods: "++id, nome, fonte, codigoBarras",
+      measurements: "++id, date, tipo, [tipo+date]",
+      bioimpedance: "++id, date",
+      activities: "++id, date",
+      daily: "date",
+      labs: "++id, date, exame",
+    });
   }
 }
 
@@ -245,10 +324,25 @@ export async function upsertProfile(patch: Partial<Profile>): Promise<Profile> {
   return next;
 }
 
+/** Combinados em vigor: o aprovado mais recente; sem aprovado, a proposta mais recente. */
 export async function getCombinadosAtivos(): Promise<Combinados | undefined> {
   const aprovado = await db.combinados.where("status").equals("aprovado").last();
   if (aprovado) return aprovado;
   return db.combinados.where("status").equals("proposto").last();
+}
+
+/** Proposta do coach ainda não aprovada, se houver. */
+export async function getCombinadosPendentes(): Promise<Combinados | undefined> {
+  return db.combinados.where("status").equals("proposto").last();
+}
+
+/** Aprova uma versão: as demais aprovadas e propostas viram histórico. */
+export async function aprovarCombinados(id: number) {
+  await db.transaction("rw", db.combinados, db.profile, async () => {
+    await db.combinados.where("status").anyOf("proposto", "aprovado").modify({ status: "substituido" });
+    await db.combinados.update(id, { status: "aprovado", aprovadoEm: Date.now() });
+  });
+  await upsertProfile({ status: "active" });
 }
 
 export async function wipeAllData() {

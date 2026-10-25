@@ -1,9 +1,11 @@
+import { Suspense, lazy } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { Droplets, MessageCircle } from "lucide-react";
 import Ring from "../components/Ring";
+const Trends = lazy(() => import("../components/Trends"));
 import { Card, PageHeader } from "../components/ui";
-import { db, getCombinadosAtivos, getProfile } from "../lib/db";
+import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile } from "../lib/db";
 import { todayKey } from "../lib/dates";
 import { CLASSIFICACAO_LABEL, calcularSaldo, somarRefeicoes } from "../lib/diary";
 import { idadeAnos } from "../lib/metas";
@@ -25,11 +27,13 @@ export default function DashboardPage() {
   const hoje = todayKey();
   const profile = useLiveQuery(getProfile, []);
   const combinados = useLiveQuery(getCombinadosAtivos, []);
+  const pendente = useLiveQuery(getCombinadosPendentes, []);
   const meals = useLiveQuery(() => db.meals.where("date").equals(hoje).sortBy("hora"), [hoje]);
   const water = useLiveQuery(() => db.water.where("date").equals(hoje).toArray(), [hoje]);
+  const treinos = useLiveQuery(() => db.activities.where("date").equals(hoje).toArray(), [hoje]);
 
   const totais = somarRefeicoes(meals ?? []);
-  const saldo = combinados ? calcularSaldo(totais, combinados, false) : undefined;
+  const saldo = combinados ? calcularSaldo(totais, combinados, (treinos?.length ?? 0) > 0) : undefined;
   const aguaMl = (water ?? []).reduce((s, w) => s + w.ml, 0);
   const aguaMeta = combinados?.aguaMl ?? 2500;
   const onboardingPending = !profile || profile.status !== "active";
@@ -69,8 +73,20 @@ export default function DashboardPage() {
             </Card>
           )}
 
+          {!onboardingPending && pendente && pendente.id !== combinados?.id && (
+            <Card className="border-amber-200 bg-amber-50">
+              <p className="text-sm font-medium text-stone-800">O coach propôs os Combinados v{pendente.versao}.</p>
+              <p className="mt-1 text-sm text-stone-600">
+                {pendente.metaKcal} kcal e {pendente.metaProteinaG} g de proteína. Até você aprovar, continua valendo a v{combinados?.versao}.
+              </p>
+              <Link to="/combinados" className="mt-3 inline-block rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white">
+                Revisar proposta
+              </Link>
+            </Card>
+          )}
+
           {combinados && saldo && (
-            <Card title={`Saldo do dia · Combinados v${combinados.versao}`}>
+            <Card title={`Saldo do dia · Combinados v${combinados.versao}${saldo.diaDeTreino ? " · dia de treino" : ""}`}>
               <div className="flex justify-around">
                 <Ring value={saldo.consumidoKcal} max={saldo.metaKcal} label="Calorias" unit="kcal" />
                 <Ring value={saldo.consumidoProteinaG} max={saldo.metaProteinaG} label="Proteína" unit="g" color="var(--color-sky-600)" />
@@ -155,6 +171,10 @@ export default function DashboardPage() {
               <div className="h-full bg-sky-500" style={{ width: `${Math.min(100, (aguaMl / aguaMeta) * 100)}%` }} />
             </div>
           </Card>
+
+          <Suspense fallback={<Card title="Tendências"><p className="text-sm text-stone-400">Carregando…</p></Card>}>
+            <Trends />
+          </Suspense>
 
           {profile && (profile.pesoAtualKg || profile.objetivo) && (
             <Card title="Perfil">

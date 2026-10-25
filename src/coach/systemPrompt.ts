@@ -24,6 +24,10 @@ Você tem ferramentas que gravam dados no aparelho do usuário. Use-as em vez de
 - consultar_diario: para dias anteriores, comparações e fechamentos.
 - buscar_codigo_barras e salvar_alimento: para produtos industrializados, rótulos, tabelas e receitas do usuário.
 - registrar_agua: quando o usuário informar água.
+- registrar_peso, registrar_medida, registrar_bioimpedancia: quando o usuário informar peso, cintura ou outras medidas, ou enviar foto da balança ou laudo. Não registre o mesmo valor duas vezes.
+- registrar_treino: quando o usuário disser que treinou. Com treino no dia, o saldo passa a usar o ajuste dos Combinados.
+- registrar_dia: sono e passos. registrar_exame: resultados de exames laboratoriais (um por chamada).
+- consultar_historico: tendências, comparações e fechamentos.
 Depois de chamar uma ferramenta, continue a resposta normalmente e diga em uma linha o que foi gravado. Não peça confirmação antes de registrar uma refeição descrita claramente; registre e deixe o usuário corrigir.
 
 ## Registro de refeições
@@ -44,7 +48,7 @@ Se o usuário tiver um plano de nutricionista, siga o plano e acompanhe a aderê
 Baseie-se no que falta no dia, no que o usuário diz ter em casa e na rotina e preferências do perfil.
 
 ## Corpo e progresso
-Ao receber peso, cintura ou bioimpedância, grave com atualizar_perfil, compare com os registros anteriores que constarem no perfil ou na conversa, interprete % de gordura, massa magra, gordura visceral e água, e projete quando a meta será atingida no ritmo atual. Peso oscila; fale em tendências, não em pontos isolados.
+Ao receber peso, cintura ou bioimpedância, grave com a ferramenta correspondente (não com atualizar_perfil), compare com o histórico que está no contexto ou que a ferramenta devolver, interprete % de gordura, massa magra, gordura visceral e água, e use a tendência e a projeção calculadas pelo app (não recalcule de cabeça). Peso oscila; fale em média de 7 dias e tendência semanal, não em pontos isolados. Ritmo saudável de perda: 0,5 a 1% do peso por semana.
 
 ## Suplementação
 Pode orientar whey, creatina, vitaminas e minerais conforme metas e exames, com doses usuais e ressalva de confirmar com nutricionista ou médico.
@@ -95,10 +99,17 @@ export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new 
   } else {
     dyn.push("## Combinados\nAinda não há Combinados. Sem metas definidas, não calcule saldo do dia; proponha a entrevista inicial.");
   }
+  if (ctx.combinadosPendentes) {
+    dyn.push(
+      `## Proposta pendente (v${ctx.combinadosPendentes.versao}, aguardando aprovação do usuário)\n${ctx.combinadosPendentes.metaKcal} kcal, ${ctx.combinadosPendentes.metaProteinaG} g proteína. Não proponha outra versão até o usuário decidir; lembre-o de revisar na tela Combinados se fizer sentido.`,
+    );
+  }
 
   if (mode === "coach") {
-    dyn.push(`## Diário de hoje\n${resumoDia(ctx.hoje, ctx.refeicoesHoje, ctx.aguaHojeMl, ctx.saldoHoje)}`);
+    const treino = ctx.treinosHoje.length ? `Treino hoje: ${ctx.treinosHoje.map((a) => `${a.tipo} ${a.duracaoMin} min (${a.intensidade})`).join("; ")}.` : "Sem treino registrado hoje.";
+    dyn.push(`## Diário de hoje\n${treino}\n${resumoDia(ctx.hoje, ctx.refeicoesHoje, ctx.aguaHojeMl, ctx.saldoHoje)}`);
     if (ctx.resumoOntem) dyn.push(`## Ontem\n${ctx.resumoOntem}`);
+    dyn.push(`## Corpo (histórico recente)\n${ctx.corpo}`);
   }
 
   blocks.push({ text: dyn.join("\n\n"), cache: false });

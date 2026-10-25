@@ -3,11 +3,14 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { Button, Card, Input, PageHeader } from "../components/ui";
-import { db, getCombinadosAtivos, upsertProfile, type Combinados } from "../lib/db";
+import { aprovarCombinados, db, getCombinadosAtivos, getCombinadosPendentes, type Combinados } from "../lib/db";
 
 export default function CombinadosPage() {
   const navigate = useNavigate();
-  const atual = useLiveQuery(getCombinadosAtivos, []);
+  const vigente = useLiveQuery(getCombinadosAtivos, []);
+  const pendente = useLiveQuery(getCombinadosPendentes, []);
+  // Mostra a proposta pendente quando existir; senão, a versão em vigor.
+  const atual = pendente === undefined || vigente === undefined ? undefined : (pendente ?? vigente);
   const historico = useLiveQuery(() => db.combinados.orderBy("versao").reverse().toArray(), []);
   const [form, setForm] = useState<Combinados | null>(null);
   const [saved, setSaved] = useState(false);
@@ -43,23 +46,22 @@ export default function CombinadosPage() {
 
   async function approve() {
     if (!form?.id) return;
-    const changed = JSON.stringify(form) !== JSON.stringify(atual);
+    const { id: _fid, status: _fs, aprovadoEm: _fa, createdAt: _fc, ...formRest } = form;
+    const { id: _aid, status: _as, aprovadoEm: _aa, createdAt: _ac, ...atualRest } = atual!;
+    const changed = JSON.stringify(formRest) !== JSON.stringify(atualRest);
     if (changed) {
       // Edição do usuário vira uma nova versão, mantendo a proposta do coach no histórico.
-      await db.combinados.where("status").anyOf("proposto", "aprovado").modify({ status: "substituido" });
-      const { id: _id, ...rest } = form;
-      await db.combinados.add({
-        ...rest,
+      const id = (await db.combinados.add({
+        ...formRest,
         versao: (await db.combinados.count()) + 1,
-        status: "aprovado",
+        status: "proposto",
         createdAt: Date.now(),
-        aprovadoEm: Date.now(),
         racional: `${form.racional}\n\nAjustado manualmente pelo usuário a partir da v${atual!.versao}.`,
-      });
+      })) as number;
+      await aprovarCombinados(id);
     } else {
-      await db.combinados.update(form.id, { status: "aprovado", aprovadoEm: Date.now() });
+      await aprovarCombinados(form.id);
     }
-    await upsertProfile({ status: "active" });
     setSaved(true);
     navigate("/hoje");
   }
@@ -75,7 +77,7 @@ export default function CombinadosPage() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
-        title={`Combinados v${form.versao}`}
+        title={`Combinados v${form.versao}${pendente && vigente && vigente.id !== pendente.id ? ` (em vigor: v${vigente.versao})` : ""}`}
         action={
           <span className={`rounded-full px-2.5 py-1 text-xs ${form.status === "aprovado" ? "bg-brand-100 text-brand-800" : "bg-amber-100 text-amber-800"}`}>
             {form.status === "aprovado" ? "Aprovado" : "Aguardando aprovação"}

@@ -147,7 +147,8 @@ export const proporCombinados = tool({
   async run(input) {
     const anterior = await getCombinadosAtivos();
     const versao = (await db.combinados.count()) + 1;
-    await db.combinados.where("status").anyOf("proposto", "aprovado").modify({ status: "substituido" });
+    // A versão aprovada continua valendo até o usuário aprovar a nova proposta.
+    await db.combinados.where("status").equals("proposto").modify({ status: "substituido" });
     const novo: Combinados = {
       versao,
       status: "proposto",
@@ -176,7 +177,7 @@ export const proporCombinados = tool({
         ok: true,
         versao,
         substituiuVersao: anterior?.versao ?? null,
-        instrucao: "Diga ao usuário para revisar e aprovar na tela Combinados (botão abaixo da conversa).",
+        instrucao: "Diga ao usuário para revisar e aprovar na tela Combinados. Até lá, os Combinados aprovados anteriores continuam valendo.",
       }),
       summary: `Combinados v${versao} propostos: ${input.metaKcal} kcal, ${input.metaProteinaG} g proteína`,
     };

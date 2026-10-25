@@ -1,6 +1,6 @@
 # Diet Coach PWA — Escopo e Roadmap (v0.2, validado)
 
-> Status: **validado em 2026-10-25**. As perguntas da v0.1 foram respondidas e as decisões estão consolidadas na seção 7. Progresso: F0, F1 e F2 entregues; F3 é a próxima.
+> Status: **validado em 2026-10-25**. As perguntas da v0.1 foram respondidas e as decisões estão consolidadas na seção 7. Progresso: F0 a F3 entregues; F4 é a próxima.
 
 ---
 
@@ -202,4 +202,5 @@ Estimativa: F0–F2 formam o MVP real. Sugiro validar com 2–3 usuários ao fim
 2. ~~F0~~: scaffold, PWA, tela de API key, chat com streaming, deploy no GitHub Pages (feito).
 3. ~~F1~~: entrevista inicial guiada com ferramentas (`atualizar_perfil`, `calcular_metas`, `propor_combinados`, `consultar_perfil`), perfil e Combinados versionados no IndexedDB, tela de revisão e aprovação, prompt dinâmico com perfil e Combinados, anexos de foto e PDF no chat (feito).
 4. ~~F2~~: diário alimentar com ferramentas (`registrar_refeicao`, `atualizar_refeicao`, `remover_refeicao`, `consultar_diario`, `buscar_alimento`, `buscar_codigo_barras`, `salvar_alimento`, `registrar_agua`), tabela TACO embutida (591 alimentos), alimentos do usuário, código de barras via Open Food Facts com leitor de câmera, saldo do dia com anéis de kcal e proteína, macros, água, aba Registros com diário por dia e busca de alimentos; diário de hoje e de ontem entram no contexto do coach (feito).
-5. **F3 (próxima)**: peso, cintura, bioimpedância, treino, sono, passos, exames e gráficos de tendência.
+5. ~~F3~~: ferramentas de corpo (`registrar_peso`, `registrar_medida`, `registrar_bioimpedancia`, `registrar_treino`, `registrar_dia`, `registrar_exame`, `consultar_historico`), aba Registros › Corpo com formulários e histórico, média móvel de 7 dias, tendência semanal por regressão, projeção da meta, saldo com ajuste em dia de treino, gráficos de peso vs meta, cintura, bioimpedância e aderência de 7 dias no dashboard; resumo corporal no contexto do coach (feito).
+6. **F4 (próxima)**: biblioteca de documentos (planos, nutricionista, laudos, tabelas) com resumos estruturados e consulta sob demanda.
