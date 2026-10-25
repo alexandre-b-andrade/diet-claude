@@ -18,6 +18,13 @@ describe("reminders", () => {
     expect(r).toEqual([]);
   });
 
+  it("dismissed or snoozed reminders are hidden until their time", () => {
+    const s = { ...REMINDER_DEFAULTS, enabled: true };
+    const now = 1_000_000;
+    const r = lembretesDevidos(s, base, { "2026-10-26:pesagem": now + 60_000, "2026-10-26:cintura": now - 1 }, now);
+    expect(r.map((x) => x.tipo)).toEqual(["cintura", "refeicao"]);
+  });
+
   it("not a weigh-in day", () => {
     const r = lembretesDevidos({ ...REMINDER_DEFAULTS, enabled: true }, { ...base, diaSemana: 2, agora: "08:00" });
     expect(r).toEqual([]);

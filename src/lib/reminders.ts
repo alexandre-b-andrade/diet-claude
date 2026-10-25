@@ -37,8 +37,11 @@ interface Estado {
   refeicoesHoje: Pick<Meal, "hora">[];
 }
 
-/** Lembretes cujo horário já passou hoje e cuja ação ainda não foi feita. */
-export function lembretesDevidos(s: ReminderSettings, e: Estado): DueReminder[] {
+/** Lembretes marcados como feitos ou adiados: id → timestamp até quando ficam ocultos. */
+export type Dismissed = Record<string, number>;
+
+/** Lembretes cujo horário já passou hoje, cuja ação ainda não foi feita e que não foram dispensados. */
+export function lembretesDevidos(s: ReminderSettings, e: Estado, dismissed: Dismissed = {}, agoraMs = Date.now()): DueReminder[] {
   if (!s.enabled) return [];
   const out: DueReminder[] = [];
   if (s.pesagemDias.includes(e.diaSemana) && e.agora >= s.pesagemHora && !e.pesouHoje) {
@@ -59,7 +62,7 @@ export function lembretesDevidos(s: ReminderSettings, e: Estado): DueReminder[] 
     });
     if (!feito) out.push({ id: `${e.hoje}:refeicao:${h}`, tipo: "refeicao", hora: h, titulo: "Registrar refeição", corpo: "Conte ao coach o que comeu ou mande a foto." });
   }
-  return out;
+  return out.filter((r) => !(dismissed[r.id] && dismissed[r.id] > agoraMs));
 }
 
 export function estadoDoDia(hoje: string, now: Date, medidasHoje: Measurement[], refeicoesHoje: Meal[], _treinos: Activity[] = []): Estado {

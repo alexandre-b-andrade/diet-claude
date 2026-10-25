@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const hoje = todayKey();
   const { settings } = useSettings();
   const { t } = useT();
-  const due = useReminders();
+  const { due, done, snooze } = useReminders();
   const monthUsage = useLiveQuery(() => db.usage.where("createdAt").aboveOrEqual(startOfMonth()).toArray(), []);
   const gastoMes = (monthUsage ?? []).reduce((s, u) => s + u.costUsd, 0);
   const budget = settings.monthlyBudgetUsd;
@@ -72,7 +72,7 @@ export default function DashboardPage() {
       />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
-          <RemindersCard due={due} />
+          <RemindersCard due={due} onDone={done} onSnooze={snooze} />
           {budget > 0 && gastoMes >= budget * 0.8 && (
             <Card className={gastoMes >= budget ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}>
               <p className="text-sm">

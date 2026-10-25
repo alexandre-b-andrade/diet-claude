@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button, Card, Input, PageHeader } from "../components/ui";
 import { db, getCombinadosAtivos, wipeAllData } from "../lib/db";
 import { backupFileName, exportBackup, importBackup, validateBackup } from "../lib/backup";
+import { gerarIcs } from "../lib/ics";
 import { useRef } from "react";
 import { MODELS, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
@@ -52,6 +53,17 @@ export default function SettingsPage() {
   }
 
   const DIAS = ["D", "S", "T", "Q", "Q", "S", "S"];
+
+  function exportIcs() {
+    const appUrl = `${location.origin}${location.pathname}`;
+    const blob = new Blob([gerarIcs(settings.reminders, appUrl)], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "diet-coach-lembretes.ics";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const monthUsage = useLiveQuery(() => db.usage.where("createdAt").aboveOrEqual(startOfMonth()).toArray(), []);
   const allUsage = useLiveQuery(() => db.usage.toArray(), []);
@@ -284,8 +296,20 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
+                <div className="rounded-xl bg-brand-50 p-3 text-xs text-stone-700">
+                  <p className="font-medium text-stone-800">Lembretes com o app fechado: use o calendário do celular.</p>
+                  <p className="mt-1">
+                    Exporte os lembretes acima como eventos recorrentes com alarme e importe no Google Calendar ou no Calendário do iPhone. O calendário notifica mesmo com o app fechado. Se mudar os horários aqui, exporte de novo: os eventos têm o mesmo identificador e são atualizados.
+                  </p>
+                  <Button variant="ghost" className="mt-2" onClick={exportIcs}>
+                    Exportar para o calendário (.ics)
+                  </Button>
+                  <p className="mt-2 text-stone-500">
+                    Android: abra o arquivo baixado e escolha o Google Agenda, ou importe em calendar.google.com › Configurações › Importar. iPhone: toque no arquivo em Arquivos e em "Adicionar tudo".
+                  </p>
+                </div>
                 <div className="rounded-xl bg-stone-50 p-3 text-xs text-stone-600">
-                  {notifPerm === "granted" && "Notificações permitidas. Elas só são enviadas enquanto o app estiver aberto ou em segundo plano recente; o lembrete também aparece no topo da tela Hoje."}
+                  {notifPerm === "granted" && "Notificações do app permitidas. Elas só são enviadas enquanto o app estiver aberto ou em segundo plano recente; o lembrete também aparece no topo da tela Hoje, com os botões Feito e Adiar, e o ícone do app mostra a quantidade pendente onde o sistema suportar."}
                   {notifPerm === "default" && (
                     <>
                       <p>Para receber notificação no aparelho, permita as notificações.</p>
