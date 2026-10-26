@@ -84,7 +84,7 @@ export default function OnboardingPage() {
           error={chat.error}
           onSend={chat.send}
           onStop={chat.stop}
-          placeholder="Responda aqui… pode anexar laudo, plano ou foto"
+          placeholder="Responda aqui ou anexe um arquivo…"
           footer={
             aberturaFalhou && conv?.id ? (
               <Button variant="ghost" className="w-full" onClick={() => void chat.run(conv.id!)}>

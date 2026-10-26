@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import Markdown from "react-markdown";
-import { Check, Loader2, Paperclip, Send, Square, X } from "lucide-react";
+import { Check, GripHorizontal, Loader2, Paperclip, Send, Square, X } from "lucide-react";
 import { fileToAttachment, type Attachment } from "../lib/attachments";
 import type { ChatMessage } from "../lib/db";
 import type { StreamingState } from "../hooks/useCoachChat";
@@ -16,19 +16,70 @@ interface Props {
   empty?: ReactNode;
   /** Conteúdo fixo acima do campo de texto (ex.: botão de revisar Combinados). */
   footer?: ReactNode;
+  /** Mensagem a destacar e rolar até ela ao abrir (vinda da busca). */
+  highlightId?: number;
 }
 
-export default function ChatView({ messages, streaming, error, onSend, onStop, placeholder, empty, footer }: Props) {
+const MIN_H = 44;
+const COMPOSER_KEY = "dietcoach.composerMax";
+
+function loadComposerMax(): number {
+  const v = Number(localStorage.getItem(COMPOSER_KEY));
+  return Number.isFinite(v) && v >= 80 ? v : 160;
+}
+
+export default function ChatView({ messages, streaming, error, onSend, onStop, placeholder, empty, footer, highlightId }: Props) {
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachError, setAttachError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const { t } = useT();
 
+  // Altura máxima do campo (ajustável pelo divisor) e se o usuário fixou uma altura por arrasto.
+  const [composerMax, setComposerMax] = useState<number>(loadComposerMax);
+  const [pinnedHeight, setPinnedHeight] = useState<number | null>(null);
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+
+  /** Ajusta a altura do campo ao conteúdo, limitada ao máximo (ou à altura fixada pelo arrasto). */
+  const fit = useCallback(
+    (el: HTMLTextAreaElement | null, reset = false) => {
+      if (!el) return;
+      if (reset) {
+        el.style.height = `${MIN_H}px`;
+        return;
+      }
+      if (pinnedHeight) {
+        el.style.height = `${pinnedHeight}px`;
+        return;
+      }
+      // Vazio: altura mínima fixa (o placeholder pode quebrar linha e inflar o scrollHeight).
+      if (!el.value) {
+        el.style.height = `${MIN_H}px`;
+        return;
+      }
+      el.style.height = "auto";
+      const h = Math.max(MIN_H, Math.min(el.scrollHeight, composerMax));
+      el.style.height = `${h}px`;
+    },
+    [composerMax, pinnedHeight],
+  );
+
+  useEffect(() => fit(textRef.current), [draft, fit]);
+
+  // Rolagem: até a mensagem destacada quando houver; senão, para o fim.
   useEffect(() => {
+    if (highlightId && messages?.length) {
+      const el = listRef.current?.querySelector<HTMLElement>(`[data-mid="${highlightId}"]`);
+      if (el) {
+        el.scrollIntoView({ block: "center" });
+        return;
+      }
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages?.length, streaming?.text]);
+  }, [messages?.length, streaming?.text, highlightId]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -37,6 +88,9 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
     const files = attachments;
     setDraft("");
     setAttachments([]);
+    // Volta ao tamanho mínimo depois de enviar.
+    setPinnedHeight(null);
+    fit(textRef.current, true);
     await onSend(text, files);
   }
 
@@ -55,14 +109,44 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  // Divisor arrastável entre a conversa e o campo de texto.
+  function onDragStart(e: ReactPointerEvent<HTMLDivElement>) {
+    const el = textRef.current;
+    if (!el) return;
+    dragRef.current = { startY: e.clientY, startH: el.getBoundingClientRect().height };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onDragMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const d = dragRef.current;
+    const el = textRef.current;
+    if (!d || !el) return;
+    const maxAllowed = Math.round(window.innerHeight * 0.6);
+    const h = Math.max(MIN_H, Math.min(maxAllowed, d.startH + (d.startY - e.clientY)));
+    el.style.height = `${h}px`;
+    setPinnedHeight(h);
+  }
+  function onDragEnd(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    const h = textRef.current?.getBoundingClientRect().height ?? composerMax;
+    const next = Math.max(80, Math.round(h));
+    setComposerMax(next);
+    localStorage.setItem(COMPOSER_KEY, String(next));
+    // Altura fixada só até o próximo envio; se o texto for menor, segue como máximo.
+    if (h <= MIN_H + 2) setPinnedHeight(null);
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-3">
           {!messages?.some((m) => !m.hidden) && !streaming && empty}
-          {messages?.filter((m) => !m.hidden).map((m) => (
-            <Bubble key={m.id} msg={m} />
-          ))}
+          {messages
+            ?.filter((m) => !m.hidden)
+            .map((m) => (
+              <Bubble key={m.id} msg={m} highlighted={m.id === highlightId} />
+            ))}
           {streaming && (
             <Bubble
               msg={{ conversationId: 0, role: "assistant", content: streaming.text || "…", toolEvents: streaming.toolEvents, createdAt: Date.now() }}
@@ -74,7 +158,21 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
         </div>
       </div>
 
-      <div className="border-t border-stone-200 bg-white px-4 py-3">
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label={t("chat.resize")}
+        title={t("chat.resize")}
+        onPointerDown={onDragStart}
+        onPointerMove={onDragMove}
+        onPointerUp={onDragEnd}
+        onPointerCancel={onDragEnd}
+        className="flex shrink-0 cursor-row-resize touch-none items-center justify-center border-t border-stone-200 bg-white py-1 text-stone-300 select-none hover:text-stone-500"
+      >
+        <GripHorizontal size={18} />
+      </div>
+
+      <div className="bg-white px-4 pb-3">
         <div className="mx-auto max-w-2xl space-y-2">
           {footer}
           {streaming && (
@@ -115,6 +213,7 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
               <Paperclip size={18} />
             </button>
             <textarea
+              ref={textRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -124,9 +223,10 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
                 }
               }}
               rows={1}
+              style={{ height: MIN_H }}
               disabled={Boolean(streaming)}
               placeholder={streaming ? t("chat.wait") : (placeholder ?? "Escreva aqui…")}
-              className="max-h-40 flex-1 resize-none rounded-2xl border border-stone-300 px-4 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:bg-stone-50 disabled:text-stone-400"
+              className="flex-1 resize-none overflow-y-auto rounded-2xl border border-stone-300 px-4 py-2.5 text-sm leading-relaxed outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:bg-stone-50 disabled:text-stone-400"
             />
             {streaming ? (
               <button type="button" onClick={onStop} className="rounded-full bg-stone-800 p-3 text-white" aria-label={t("chat.stop")}>
@@ -149,16 +249,16 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
   );
 }
 
-function Bubble({ msg, live = false }: { msg: ChatMessage; live?: boolean }) {
+function Bubble({ msg, live = false, highlighted = false }: { msg: ChatMessage; live?: boolean; highlighted?: boolean }) {
   const mine = msg.role === "user";
   const { t } = useT();
   const thinkingLabel = t("chat.thinking");
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+    <div className={`flex ${mine ? "justify-end" : "justify-start"}`} data-mid={msg.id}>
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           mine ? "bg-brand-700 text-white" : "border border-stone-200 bg-white text-stone-900"
-        }`}
+        } ${highlighted ? "ring-2 ring-amber-400 ring-offset-2" : ""}`}
       >
         {mine ? (
           <>
@@ -171,9 +271,9 @@ function Bubble({ msg, live = false }: { msg: ChatMessage; live?: boolean }) {
           <>
             {msg.toolEvents?.length ? (
               <ul className="mb-2 space-y-0.5">
-                {msg.toolEvents.map((t, i) => (
+                {msg.toolEvents.map((tev, i) => (
                   <li key={i} className="flex items-start gap-1 text-xs text-brand-700">
-                    <Check size={12} className="mt-0.5 shrink-0" /> <span>{t.summary}</span>
+                    <Check size={12} className="mt-0.5 shrink-0" /> <span>{tev.summary}</span>
                   </li>
                 ))}
               </ul>
