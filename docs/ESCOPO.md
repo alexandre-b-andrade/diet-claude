@@ -192,11 +192,11 @@ Estimativa: F0–F2 formam o MVP real. Sugiro validar com 2–3 usuários ao fim
 
 Itens registrados após as fases 0 a 6, para a próxima rodada:
 
-### Chat
-- **Campo de texto que cresce ao digitar.** O campo de mensagem deve aumentar de altura conforme o usuário digita, mostrando mais linhas do texto em vez de rolar dentro de uma caixa pequena.
-- **Divisor arrastável entre conversa e campo de texto.** O usuário pode arrastar a borda entre a área das mensagens e a área de digitação para redimensionar o campo (toque e arraste no celular, mouse no desktop).
-- **Campo volta ao tamanho mínimo após enviar.** Ao tocar em Enviar, o campo de texto retorna à altura mínima, liberando espaço para a resposta do coach.
-- **Histórico de conversas sempre salvo e consultável.** Todas as conversas ficam guardadas no aparelho (hoje já ficam, mas só a mais recente é acessível). Adicionar um menu no topo do chat para alternar entre múltiplas conversas (lista com título, data e prévia; renomear e apagar) e uma busca por texto que encontra mensagens em qualquer conversa e abre no ponto encontrado.
+### Chat (implementado em 2026-10-26)
+- ~~Campo de texto que cresce ao digitar~~ (feito, até o máximo ajustável).
+- ~~Divisor arrastável entre conversa e campo de texto~~ (feito, toque ou mouse; o tamanho fica salvo no aparelho).
+- ~~Campo volta ao tamanho mínimo após enviar~~ (feito).
+- ~~Histórico de conversas consultável~~ (feito: menu Conversas no topo do chat com lista, prévia, renomear e apagar; busca por texto em todas as mensagens que abre a conversa no ponto encontrado, com destaque).
 
 ### Já listados nas respostas anteriores
 - Web Push com servidor mínimo (notificação com o app fechado), decisão pendente.

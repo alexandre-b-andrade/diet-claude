@@ -1,6 +1,7 @@
-import { useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { List, Plus } from "lucide-react";
+import ConversationsPanel from "../components/ConversationsPanel";
 import ChatView from "../components/ChatView";
 import { PageHeader } from "../components/ui";
 import { createConversation, useCoachChat } from "../hooks/useCoachChat";
@@ -10,8 +11,11 @@ import { useT } from "../i18n";
 
 export default function ChatPage() {
   const { conversationId } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
   const convId = conversationId ? Number(conversationId) : undefined;
+  const highlightId = search.get("m") ? Number(search.get("m")) : undefined;
+  const [panelOpen, setPanelOpen] = useState(false);
 
   // Sem id na URL: abre a conversa livre mais recente ou cria a primeira.
   useEffect(() => {
@@ -44,15 +48,21 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
       <PageHeader
         title={t("chat.title")}
         action={
-          <button onClick={startNew} className="rounded-full p-2 text-stone-600 hover:bg-stone-100" aria-label={t("chat.new")}>
-            <Plus size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPanelOpen(true)} className="rounded-full p-2 text-stone-600 hover:bg-stone-100" aria-label={t("chat.conversations")}>
+              <List size={20} />
+            </button>
+            <button onClick={startNew} className="rounded-full p-2 text-stone-600 hover:bg-stone-100" aria-label={t("chat.new")}>
+              <Plus size={20} />
+            </button>
+          </div>
         }
       />
+      <ConversationsPanel open={panelOpen} onClose={() => setPanelOpen(false)} currentId={convId} onNew={startNew} />
       <ChatView
         messages={chat.messages}
         streaming={chat.streaming}
@@ -61,6 +71,7 @@ export default function ChatPage() {
         onStop={chat.stop}
         placeholder={t("chat.placeholder")}
         empty={<Welcome />}
+        highlightId={highlightId}
       />
     </div>
   );
