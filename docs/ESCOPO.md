@@ -196,6 +196,7 @@ Itens registrados após as fases 0 a 6, para a próxima rodada:
 - ~~Campo de texto que cresce ao digitar~~ (feito, até o máximo ajustável).
 - ~~Divisor arrastável entre conversa e campo de texto~~ (feito, toque ou mouse; o tamanho fica salvo no aparelho).
 - ~~Campo volta ao tamanho mínimo após enviar~~ (feito).
+- ~~Busca dentro da conversa atual~~ (feito em 2026-10-29: botão de lupa no topo do chat, contagem de resultados, anterior e próximo, destaque das mensagens e dos trechos encontrados).
 - ~~Histórico de conversas consultável~~ (feito: menu Conversas no topo do chat com lista, prévia, renomear e apagar; busca por texto em todas as mensagens que abre a conversa no ponto encontrado, com destaque).
 
 ### Já listados nas respostas anteriores

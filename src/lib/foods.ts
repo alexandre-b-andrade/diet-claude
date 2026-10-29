@@ -47,6 +47,11 @@ export function normalize(s: string): string {
     .trim();
 }
 
+/** Minúsculas sem acentos, preservando o comprimento (para destacar trechos). */
+export function fold(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 const STOP = new Set(["de", "da", "do", "com", "sem", "e", "em", "a", "o"]);
 
 function tokens(s: string): string[] {
