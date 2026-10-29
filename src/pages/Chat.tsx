@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { List, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, List, Plus, Search, X } from "lucide-react";
+import { fold } from "../lib/foods";
 import ConversationsPanel from "../components/ConversationsPanel";
 import ChatView from "../components/ChatView";
 import { PageHeader } from "../components/ui";
@@ -16,6 +17,9 @@ export default function ChatPage() {
   const convId = conversationId ? Number(conversationId) : undefined;
   const highlightId = search.get("m") ? Number(search.get("m")) : undefined;
   const [panelOpen, setPanelOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [term, setTerm] = useState("");
+  const [hitIdx, setHitIdx] = useState(0);
 
   // Sem id na URL: abre a conversa livre mais recente ou cria a primeira.
   useEffect(() => {
@@ -33,6 +37,20 @@ export default function ChatPage() {
 
   const chat = useCoachChat(convId, "coach");
   const { t } = useT();
+
+  // Busca na conversa atual: ids das mensagens que contêm o termo, em ordem cronológica.
+  const hits = useMemo(() => {
+    const n = fold(term.trim());
+    if (n.length < 2 || !chat.messages) return [] as number[];
+    return chat.messages.filter((m) => !m.hidden && fold(m.content).includes(n)).map((m) => m.id!);
+  }, [term, chat.messages]);
+  useEffect(() => setHitIdx(hits.length ? hits.length - 1 : 0), [hits.length, term]);
+  const activeHit = searchOpen && hits.length ? hits[Math.min(hitIdx, hits.length - 1)] : undefined;
+  const step = (d: number) => setHitIdx((i) => (hits.length ? (i + d + hits.length) % hits.length : 0));
+  function closeSearch() {
+    setSearchOpen(false);
+    setTerm("");
+  }
 
   // Envio pendente vindo de outra tela (ex.: upload em Registros › Documentos).
   useEffect(() => {
@@ -53,6 +71,9 @@ export default function ChatPage() {
         title={t("chat.title")}
         action={
           <div className="flex items-center gap-1">
+            <button onClick={() => setSearchOpen((v) => !v)} className={`rounded-full p-2 hover:bg-stone-100 ${searchOpen ? "bg-brand-50 text-brand-700" : "text-stone-600"}`} aria-label={t("chat.searchInChat")}>
+              <Search size={20} />
+            </button>
             <button onClick={() => setPanelOpen(true)} className="rounded-full p-2 text-stone-600 hover:bg-stone-100" aria-label={t("chat.conversations")}>
               <List size={20} />
             </button>
@@ -63,6 +84,36 @@ export default function ChatPage() {
         }
       />
       <ConversationsPanel open={panelOpen} onClose={() => setPanelOpen(false)} currentId={convId} onNew={startNew} />
+      {searchOpen && (
+        <div className="flex items-center gap-2 border-b border-stone-200 bg-white px-4 py-2">
+          <Search size={16} className="shrink-0 text-stone-400" />
+          <input
+            autoFocus
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                step(e.shiftKey ? -1 : 1);
+              } else if (e.key === "Escape") closeSearch();
+            }}
+            placeholder={t("chat.searchInChatPlaceholder")}
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+          />
+          <span className="shrink-0 text-xs text-stone-500" aria-live="polite">
+            {term.trim().length >= 2 ? (hits.length ? t("chat.searchHits", { i: Math.min(hitIdx, hits.length - 1) + 1, n: hits.length }) : t("chat.noHits")) : ""}
+          </span>
+          <button onClick={() => step(-1)} disabled={!hits.length} className="rounded-full p-1.5 text-stone-600 hover:bg-stone-100 disabled:opacity-30" aria-label={t("chat.prevHit")}>
+            <ChevronUp size={18} />
+          </button>
+          <button onClick={() => step(1)} disabled={!hits.length} className="rounded-full p-1.5 text-stone-600 hover:bg-stone-100 disabled:opacity-30" aria-label={t("chat.nextHit")}>
+            <ChevronDown size={18} />
+          </button>
+          <button onClick={closeSearch} className="rounded-full p-1.5 text-stone-600 hover:bg-stone-100" aria-label={t("install.dismiss")}>
+            <X size={18} />
+          </button>
+        </div>
+      )}
       <ChatView
         messages={chat.messages}
         streaming={chat.streaming}
@@ -71,7 +122,8 @@ export default function ChatPage() {
         onStop={chat.stop}
         placeholder={t("chat.placeholder")}
         empty={<Welcome />}
-        highlightId={highlightId}
+        highlightId={activeHit ?? highlightId}
+        searchTerm={searchOpen && term.trim().length >= 2 ? term : undefined}
       />
     </div>
   );

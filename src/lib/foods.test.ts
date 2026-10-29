@@ -28,3 +28,11 @@ describe("foods", () => {
     expect(r.proteinaG).toBe(3.9);
   });
 });
+
+describe("fold", () => {
+  it("lowercases and strips accents keeping length", async () => {
+    const { fold } = await import("./foods");
+    expect(fold("Pão: Francês")).toBe("pao: frances");
+    expect(fold("Pão: Francês").length).toBe("Pão: Francês".length);
+  });
+});

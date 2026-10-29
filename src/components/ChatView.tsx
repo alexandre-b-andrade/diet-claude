@@ -5,6 +5,7 @@ import { fileToAttachment, type Attachment } from "../lib/attachments";
 import type { ChatMessage } from "../lib/db";
 import type { StreamingState } from "../hooks/useCoachChat";
 import { useT } from "../i18n";
+import { fold } from "../lib/foods";
 
 interface Props {
   messages: ChatMessage[] | undefined;
@@ -16,8 +17,10 @@ interface Props {
   empty?: ReactNode;
   /** Conteúdo fixo acima do campo de texto (ex.: botão de revisar Combinados). */
   footer?: ReactNode;
-  /** Mensagem a destacar e rolar até ela ao abrir (vinda da busca). */
+  /** Mensagem a destacar e rolar até ela (resultado ativo da busca ou link vindo do painel). */
   highlightId?: number;
+  /** Termo da busca na conversa atual: destaca todas as mensagens que o contêm. */
+  searchTerm?: string;
 }
 
 const MIN_H = 44;
@@ -28,7 +31,7 @@ function loadComposerMax(): number {
   return Number.isFinite(v) && v >= 80 ? v : 160;
 }
 
-export default function ChatView({ messages, streaming, error, onSend, onStop, placeholder, empty, footer, highlightId }: Props) {
+export default function ChatView({ messages, streaming, error, onSend, onStop, placeholder, empty, footer, highlightId, searchTerm }: Props) {
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachError, setAttachError] = useState<string | null>(null);
@@ -74,12 +77,15 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
     if (highlightId && messages?.length) {
       const el = listRef.current?.querySelector<HTMLElement>(`[data-mid="${highlightId}"]`);
       if (el) {
-        el.scrollIntoView({ block: "center" });
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
         return;
       }
     }
+    if (searchTerm) return; // durante a busca, não puxa para o fim
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages?.length, streaming?.text, highlightId]);
+  }, [messages?.length, streaming?.text, highlightId, searchTerm]);
+
+  const term = searchTerm ? fold(searchTerm.trim()) : "";
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -145,7 +151,7 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
           {messages
             ?.filter((m) => !m.hidden)
             .map((m) => (
-              <Bubble key={m.id} msg={m} highlighted={m.id === highlightId} />
+              <Bubble key={m.id} msg={m} highlighted={m.id === highlightId} hit={Boolean(term) && fold(m.content).includes(term)} term={searchTerm} />
             ))}
           {streaming && (
             <Bubble
@@ -249,20 +255,21 @@ export default function ChatView({ messages, streaming, error, onSend, onStop, p
   );
 }
 
-function Bubble({ msg, live = false, highlighted = false }: { msg: ChatMessage; live?: boolean; highlighted?: boolean }) {
+function Bubble({ msg, live = false, highlighted = false, hit = false, term }: { msg: ChatMessage; live?: boolean; highlighted?: boolean; hit?: boolean; term?: string }) {
   const mine = msg.role === "user";
   const { t } = useT();
   const thinkingLabel = t("chat.thinking");
+  const ring = highlighted ? "ring-2 ring-amber-500 ring-offset-2" : hit ? "ring-2 ring-amber-200 ring-offset-1" : "";
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`} data-mid={msg.id}>
+    <div className={`flex ${mine ? "justify-end" : "justify-start"}`} data-mid={msg.id} data-hit={hit || undefined}>
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           mine ? "bg-brand-700 text-white" : "border border-stone-200 bg-white text-stone-900"
-        } ${highlighted ? "ring-2 ring-amber-400 ring-offset-2" : ""}`}
+        } ${ring}`}
       >
         {mine ? (
           <>
-            <p className="whitespace-pre-wrap">{msg.content}</p>
+            <p className="whitespace-pre-wrap">{hit && term ? <MarkText text={msg.content} term={term} /> : msg.content}</p>
             {msg.attachments?.length ? (
               <p className="mt-1 text-xs text-brand-100">Anexos: {msg.attachments.join(", ")}</p>
             ) : null}
@@ -292,4 +299,25 @@ function Bubble({ msg, live = false, highlighted = false }: { msg: ChatMessage; 
       </div>
     </div>
   );
+}
+
+/** Destaca todas as ocorrências do termo (sem acento e sem caixa) em texto simples. */
+function MarkText({ text, term }: { text: string; term: string }) {
+  const n = fold(term.trim());
+  const flat = fold(text);
+  if (!n || flat.length !== text.length) return <>{text}</>;
+  const parts: ReactNode[] = [];
+  let i = 0;
+  let from = 0;
+  while ((i = flat.indexOf(n, from)) >= 0) {
+    if (i > from) parts.push(text.slice(from, i));
+    parts.push(
+      <mark key={i} className="rounded bg-amber-300 px-0.5 text-stone-900">
+        {text.slice(i, i + n.length)}
+      </mark>,
+    );
+    from = i + n.length;
+  }
+  if (from < text.length) parts.push(text.slice(from));
+  return <>{parts}</>;
 }
