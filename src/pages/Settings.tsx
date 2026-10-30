@@ -5,6 +5,7 @@ import { Button, Card, Input, PageHeader } from "../components/ui";
 import { db, getCombinadosAtivos, wipeAllData } from "../lib/db";
 import { backupFileName, exportBackup, importBackup, validateBackup } from "../lib/backup";
 import { gerarIcs } from "../lib/ics";
+import { buildDemoBackup } from "../lib/demo";
 import { useRef } from "react";
 import { MODELS, cacheSavingsUsd, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
@@ -56,6 +57,25 @@ export default function SettingsPage() {
   }
 
   const DIAS = ["D", "S", "T", "Q", "Q", "S", "S"];
+
+  async function loadDemo() {
+    if (!confirm("Carregar os dados de demonstração substitui TODOS os dados deste aparelho (conversas, diário, medidas). Exporte um backup antes se quiser guardar o que tem. Continuar?")) return;
+    const b = buildDemoBackup();
+    await importBackup(b, "substituir");
+    setBackupMsg("Dados de demonstração carregados: Marina, 8 semanas de registros. Para voltar aos seus dados, importe seu backup.");
+    location.hash = "#/hoje";
+  }
+
+  function downloadDemo() {
+    const b = buildDemoBackup();
+    const blob = new Blob([JSON.stringify(b)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "diet-coach-demo.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function exportIcs() {
     const appUrl = `${location.origin}${location.pathname}`;
@@ -361,6 +381,21 @@ export default function SettingsPage() {
               <input ref={importRef} type="file" accept="application/json" className="hidden" onChange={(e) => doImport(e.target.files?.[0], (e.target.dataset.modo as "substituir" | "mesclar") ?? "mesclar")} />
             </div>
             {backupMsg && <p className="mt-2 text-xs text-stone-600">{backupMsg}</p>}
+          </Card>
+
+          <Card title="Demonstração">
+            <p className="text-sm text-stone-600">
+              Dados fictícios de uma usuária (Marina) com 8 semanas de refeições, peso, cintura, bioimpedância, treinos, exames, documentos, fechamentos semanais e conversas, com datas relativas a hoje. Útil para mostrar o app a outras pessoas.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="ghost" onClick={loadDemo}>
+                Carregar demonstração
+              </Button>
+              <Button variant="ghost" onClick={downloadDemo}>
+                Baixar arquivo (.json)
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-stone-500">Carregar substitui os dados atuais; exporte um backup antes. O arquivo baixado pode ser importado em outro aparelho pela opção Importar (substituir).</p>
           </Card>
 
           <Card title={t("settings.data")}>

@@ -6,3 +6,4 @@ dev-dist
 coverage
 test-results
 *.tsbuildinfo
+dist-scripts
