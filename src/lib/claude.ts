@@ -91,10 +91,16 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
   }));
 
   let useMidSystem = !midSystemUnsupported.has(opts.model);
+  // Garantia: se por algum motivo o histórico não terminar em mensagem do usuário, o contexto
+  // dinâmico vai no system do topo (como antes), para nunca faltar ao modelo.
+  const lastTurn = opts.history[opts.history.length - 1];
+  const contextInSystem = !lastTurn || lastTurn.role !== "user";
+  if (contextInSystem) system.push({ type: "text" as const, text: opts.prompt.dynamic });
+
   const buildMessages = (): BetaMessageParam[] => {
     const msgs: BetaMessageParam[] = opts.history.map((h) => ({ role: h.role, content: h.content }));
     const last = msgs[msgs.length - 1];
-    if (last && last.role === "user") {
+    if (last && last.role === "user" && !contextInSystem) {
       if (useMidSystem) {
         last.content = withCacheOnLast(last.content);
         msgs.push({ role: "system", content: opts.prompt.dynamic });
