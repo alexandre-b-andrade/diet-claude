@@ -29,7 +29,7 @@ export const MODELS: ModelInfo[] = [
     input: 2,
     output: 10,
     cacheWrite: 2.5,
-    cacheRead: 0.2,
+    cacheRead: 0.1,
   },
   {
     id: "claude-haiku-5-5",
@@ -65,6 +65,12 @@ export function estimateCostUsd(model: string, u: TokenUsage): number {
     u.cacheWriteTokens * m.cacheWrite * perTok +
     u.cacheReadTokens * m.cacheRead * perTok
   );
+}
+
+/** Quanto se economizou em US$ por ler do cache em vez de reprocessar (write já pago). */
+export function cacheSavingsUsd(model: string, u: TokenUsage): number {
+  const m = modelInfo(model);
+  return (u.cacheReadTokens * (m.input - m.cacheRead)) / 1_000_000;
 }
 
 export function formatUsd(v: number): string {

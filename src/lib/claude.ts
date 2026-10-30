@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { CoachTool } from "../coach/tools";
-import type { SystemBlock } from "../coach/systemPrompt";
+import type { PromptParts } from "../coach/systemPrompt";
 import type { Attachment } from "./attachments";
 import type { TokenUsage } from "./pricing";
 
@@ -10,6 +10,12 @@ type BetaTool = Anthropic.Beta.Messages.BetaTool;
 type BetaToolUseBlock = Anthropic.Beta.Messages.BetaToolUseBlock;
 type BetaToolResultBlockParam = Anthropic.Beta.Messages.BetaToolResultBlockParam;
 type BetaContentBlockParam = Anthropic.Beta.Messages.BetaContentBlockParam;
+type CacheControl = Anthropic.Beta.Messages.BetaCacheControlEphemeral;
+
+const EPHEMERAL: CacheControl = { type: "ephemeral" };
+
+/** Modelos em que a mensagem `role: "system"` no meio da conversa foi rejeitada (fallback por sessão). */
+const midSystemUnsupported = new Set<string>();
 
 export function makeClient(apiKey: string) {
   // A chave é do próprio usuário e fica no aparelho dele; o app é 100% client-side.
@@ -32,7 +38,7 @@ export interface ToolEvent {
 export interface RunTurnOptions {
   apiKey: string;
   model: string;
-  system: SystemBlock[];
+  prompt: PromptParts;
   history: HistoryTurn[];
   tools: CoachTool[];
   onText: (delta: string) => void;
@@ -59,7 +65,16 @@ export class SilenceTimeoutError extends Error {
   }
 }
 
-/** Um turno completo do coach: streaming + execução local de ferramentas até o modelo encerrar. */
+/**
+ * Um turno completo do coach: streaming + execução local de ferramentas até o modelo encerrar.
+ *
+ * Layout pensado para cache de prompt (prefixo: tools → system → messages):
+ * - tools e o system fixo nunca mudam entre turnos; breakpoint no último bloco do system;
+ * - o histórico cresce só no fim; breakpoint no último bloco da última mensagem do usuário;
+ * - o contexto dinâmico (perfil, diário, data) vai DEPOIS do histórico, como mensagem de sistema,
+ *   para não invalidar o cache da conversa;
+ * - em rodadas de ferramenta, breakpoint no último tool_result (só o mais recente, para caber em 4).
+ */
 export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
   const client = makeClient(opts.apiKey);
   const tools: BetaTool[] = opts.tools.map((t) => ({
@@ -69,7 +84,29 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
   }));
   const toolMap = new Map(opts.tools.map((t) => [t.name, t]));
 
-  const messages: BetaMessageParam[] = opts.history.map((h) => ({ role: h.role, content: h.content }));
+  const system = opts.prompt.system.map((b, i, arr) => ({
+    type: "text" as const,
+    text: b.text,
+    ...(i === arr.length - 1 ? { cache_control: EPHEMERAL } : {}),
+  }));
+
+  let useMidSystem = !midSystemUnsupported.has(opts.model);
+  const buildMessages = (): BetaMessageParam[] => {
+    const msgs: BetaMessageParam[] = opts.history.map((h) => ({ role: h.role, content: h.content }));
+    const last = msgs[msgs.length - 1];
+    if (last && last.role === "user") {
+      if (useMidSystem) {
+        last.content = withCacheOnLast(last.content);
+        msgs.push({ role: "system", content: opts.prompt.dynamic });
+      } else {
+        // Fallback: contexto como bloco de texto no fim da mensagem do usuário, com o breakpoint antes dele.
+        const blocks = withCacheOnLast(last.content);
+        last.content = [...blocks, { type: "text", text: `<contexto_do_app>\n${opts.prompt.dynamic}\n</contexto_do_app>` }];
+      }
+    }
+    return msgs;
+  };
+  let messages = buildMessages();
   const usage: TokenUsage = { inputTokens: 0, outputTokens: 0, cacheWriteTokens: 0, cacheReadTokens: 0 };
   const toolEvents: ToolEvent[] = [];
   let text = "";
@@ -96,11 +133,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
       {
         model: opts.model,
         max_tokens: 16000,
-        system: opts.system.map((b) => ({
-          type: "text" as const,
-          text: b.text,
-          ...(b.cache ? { cache_control: { type: "ephemeral" as const } } : {}),
-        })),
+        system,
         messages,
         tools,
         output_config: { effort: "medium" },
@@ -122,6 +155,14 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
       message = await stream.finalMessage();
     } catch (err) {
       if (timedOut) throw new SilenceTimeoutError();
+      // Modelo sem suporte a `role: "system"` no meio da conversa: refaz com o contexto na mensagem do usuário.
+      if (useMidSystem && round === 0 && err instanceof Anthropic.BadRequestError && /role.*system/i.test(err.message)) {
+        midSystemUnsupported.add(opts.model);
+        useMidSystem = false;
+        messages = buildMessages();
+        round--;
+        continue;
+      }
       throw err;
     }
     servedBy = message.model;
@@ -170,7 +211,13 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
         results.push({ type: "tool_result", tool_use_id: tu.id, is_error: true, content: `Erro ao executar: ${(err as Error).message}` });
       }
     }
-    messages.push({ role: "user", content: results });
+    // Só o tool_result mais recente carrega breakpoint (limite de 4 por requisição).
+    for (const m of messages) {
+      if (m.role === "user" && Array.isArray(m.content)) {
+        for (const b of m.content) if (b.type === "tool_result" && "cache_control" in b) delete (b as { cache_control?: CacheControl }).cache_control;
+      }
+    }
+    messages.push({ role: "user", content: withCacheOnLast(results) });
     if (text && !text.endsWith("\n")) {
       text += "\n\n";
       opts.onText("\n\n");
@@ -181,6 +228,16 @@ export async function runTurn(opts: RunTurnOptions): Promise<RunTurnResult> {
   }
 
   return { text, usage, stopReason, servedBy, toolEvents };
+}
+
+/** Converte o conteúdo em blocos e marca o último com cache_control. */
+function withCacheOnLast(content: string | BetaContentBlockParam[]): BetaContentBlockParam[] {
+  const blocks: BetaContentBlockParam[] = typeof content === "string" ? [{ type: "text", text: content }] : content.map((b) => ({ ...b }));
+  const last = blocks[blocks.length - 1];
+  if (last && (last.type === "text" || last.type === "image" || last.type === "document" || last.type === "tool_result" || last.type === "tool_use")) {
+    (last as { cache_control?: CacheControl }).cache_control = EPHEMERAL;
+  }
+  return blocks;
 }
 
 /** Monta o conteúdo de uma mensagem do usuário com anexos opcionais. */

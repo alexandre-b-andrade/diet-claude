@@ -7,7 +7,7 @@ import { estimateCostUsd } from "../lib/pricing";
 import { summarizeMessages } from "../lib/summarize";
 import { logError } from "../lib/diag";
 import { useSettings } from "../lib/settings";
-import { buildSystemBlocks, type CoachMode } from "../coach/systemPrompt";
+import { buildPrompt, type CoachMode } from "../coach/systemPrompt";
 import { loadCoachContext } from "../coach/context";
 import { COACH_TOOLS, ONBOARDING_TOOLS } from "../coach/toolsets";
 
@@ -128,7 +128,7 @@ export function useCoachChat(conversationId: number | undefined, mode: CoachMode
         const result = await runTurn({
           apiKey,
           model: settings.model,
-          system: buildSystemBlocks(mode, context, new Date(), summary),
+          prompt: buildPrompt(mode, context, new Date(), summary),
           history,
           tools: mode === "onboarding" ? ONBOARDING_TOOLS : COACH_TOOLS,
           signal: controller.signal,

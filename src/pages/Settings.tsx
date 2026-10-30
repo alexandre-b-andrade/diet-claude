@@ -6,7 +6,7 @@ import { db, getCombinadosAtivos, wipeAllData } from "../lib/db";
 import { backupFileName, exportBackup, importBackup, validateBackup } from "../lib/backup";
 import { gerarIcs } from "../lib/ics";
 import { useRef } from "react";
-import { MODELS, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
+import { MODELS, cacheSavingsUsd, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
 import { useT } from "../i18n";
 import InstallCard from "../components/InstallCard";
@@ -77,6 +77,15 @@ export default function SettingsPage() {
     (rows ?? []).reduce((s, r) => s + r.inputTokens + r.outputTokens + r.cacheReadTokens + r.cacheWriteTokens, 0);
 
   const masked = apiKey ? `${apiKey.slice(0, 10)}…${apiKey.slice(-4)}` : "—";
+  const cacheStats = (() => {
+    const rows = monthUsage ?? [];
+    const read = rows.reduce((s, r) => s + r.cacheReadTokens, 0);
+    const write = rows.reduce((s, r) => s + r.cacheWriteTokens, 0);
+    const fresh = rows.reduce((s, r) => s + r.inputTokens, 0);
+    const total = read + write + fresh;
+    const savings = rows.reduce((s, r) => s + cacheSavingsUsd(r.model, r), 0);
+    return { read, write, fresh, total, pct: total ? Math.round((read / total) * 100) : 0, savings };
+  })();
 
   return (
     <div className="flex h-full flex-col">
@@ -172,6 +181,15 @@ export default function SettingsPage() {
               <dt className="text-stone-500">Tokens (total)</dt>
               <dd className="text-right">{tokens(allUsage).toLocaleString("pt-BR")}</dd>
             </dl>
+            {cacheStats.total > 0 && (
+              <div className="mt-3 rounded-xl bg-stone-50 p-3 text-xs text-stone-600">
+                <p>
+                  <strong className="text-stone-800">Cache de prompt este mês:</strong> {cacheStats.pct}% dos tokens de entrada vieram do cache ({cacheStats.read.toLocaleString("pt-BR")} lidos,{" "}
+                  {cacheStats.write.toLocaleString("pt-BR")} gravados, {cacheStats.fresh.toLocaleString("pt-BR")} novos).
+                </p>
+                <p className="mt-1">Economia estimada: {formatUsd(cacheStats.savings)} em relação a reprocessar tudo.</p>
+              </div>
+            )}
             <div className="mt-3 flex items-center gap-2 text-sm">
               <label htmlFor="brl" className="text-stone-500">
                 Cotação US$ → R$
