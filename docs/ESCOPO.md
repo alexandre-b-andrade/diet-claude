@@ -206,6 +206,17 @@ Itens registrados após as fases 0 a 6, para a próxima rodada:
 - Reduzir o bundle principal; completar a tradução das telas de Registros e Combinados.
 - Leitura automática da foto da balança de bioimpedância; lista de compras; modo "comer fora".
 
+## 7.2 Cache de prompt (implementado em 2026-10-30)
+
+Ordem do prefixo na API: `tools` → `system` → `messages`. O app organiza a requisição para que o que muda fique sempre no fim:
+
+1. **Ferramentas e prompt fixo do coach** nunca mudam entre turnos. Breakpoint de cache no último bloco do `system` (na entrevista, inclui as instruções do modo).
+2. **Histórico da conversa** só cresce no fim. Breakpoint no último bloco da última mensagem do usuário; a cada turno a API reaproveita todo o histórico anterior.
+3. **Contexto dinâmico** (data e hora, perfil, Combinados, diário de hoje, corpo, documentos, resumo da conversa) vai depois do histórico como mensagem `role: "system"`, e não no `system` do topo. Assim, registrar uma refeição não invalida o cache da conversa. Em modelos que não aceitam essa mensagem, o app cai para um bloco de texto no fim da mensagem do usuário.
+4. **Rodadas de ferramenta** dentro do mesmo turno: breakpoint no último `tool_result` (apenas o mais recente, para respeitar o limite de 4 breakpoints).
+
+Configurações › Uso mostra a fração de tokens de entrada lidos do cache e a economia estimada do mês. TTL de 5 minutos: cobre as sequências de mensagens de uma mesma sessão; o TTL de 1 hora custa o dobro na gravação e só compensa com uso contínuo.
+
 ## 8. Riscos e cuidados
 - **Precisão nutricional**: estimativas por foto têm erro alto; o app deve mostrar faixas e pedir confirmação de porções.
 - **Saúde**: o coach não prescreve dietas restritivas severas, suplementos ou medicamentos; encaminha para profissional em sinais de alerta (perda de peso muito rápida, TCA, gestação, condições crônicas).

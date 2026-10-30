@@ -79,9 +79,17 @@ export interface SystemBlock {
   cache: boolean;
 }
 
-export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new Date(), conversationSummary?: string): SystemBlock[] {
-  const blocks: SystemBlock[] = [{ text: COACH_SYSTEM_PROMPT, cache: true }];
-  if (mode === "onboarding") blocks.push({ text: ONBOARDING_SYSTEM_PROMPT, cache: false });
+/** Prompt dividido para cache: prefixo fixo (system) e contexto dinâmico (vai depois do histórico). */
+export interface PromptParts {
+  /** Blocos estáveis entre mensagens: prompt do coach e, na entrevista, as instruções do modo. */
+  system: SystemBlock[];
+  /** Perfil, Combinados, diário, corpo, documentos e data: muda a cada turno, por isso fica no fim. */
+  dynamic: string;
+}
+
+export function buildPrompt(mode: CoachMode, ctx: CoachContext, now = new Date(), conversationSummary?: string): PromptParts {
+  const system: SystemBlock[] = [{ text: COACH_SYSTEM_PROMPT, cache: true }];
+  if (mode === "onboarding") system.push({ text: ONBOARDING_SYSTEM_PROMPT, cache: true });
 
   const dyn: string[] = [
     ...(ctx.language === "en" ? ["## Idioma\nO usuário escolheu inglês: responda sempre em inglês (US), mantendo unidades métricas. Os nomes das ferramentas e os dados gravados continuam em português."] : []),
@@ -89,7 +97,7 @@ export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new 
   ];
 
   if (ctx.profile && Object.keys(publicProfile(ctx.profile)).length > 1) {
-    dyn.push(`## Perfil do usuário (gravado no aparelho)\n\`\`\`json\n${JSON.stringify(publicProfile(ctx.profile), null, 1)}\n\`\`\``);
+    dyn.push(`## Perfil do usuário (gravado no aparelho)\n\`\`\`json\n${JSON.stringify(publicProfile(ctx.profile))}\n\`\`\``);
   } else {
     dyn.push("## Perfil do usuário\nAinda não há perfil gravado.");
   }
@@ -97,7 +105,7 @@ export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new 
   if (ctx.combinados) {
     const { id: _id, createdAt: _c, aprovadoEm: _a, ...rest } = ctx.combinados;
     dyn.push(
-      `## Combinados vigentes (v${ctx.combinados.versao}, ${ctx.combinados.status === "aprovado" ? "aprovados pelo usuário" : "propostos, aguardando aprovação"})\n\`\`\`json\n${JSON.stringify(rest, null, 1)}\n\`\`\``,
+      `## Combinados vigentes (v${ctx.combinados.versao}, ${ctx.combinados.status === "aprovado" ? "aprovados pelo usuário" : "propostos, aguardando aprovação"})\n\`\`\`json\n${JSON.stringify(rest)}\n\`\`\``,
     );
   } else {
     dyn.push("## Combinados\nAinda não há Combinados. Sem metas definidas, não calcule saldo do dia; proponha a entrevista inicial.");
@@ -117,6 +125,11 @@ export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new 
   dyn.push(`## Biblioteca de documentos\n${resumoDocumentos(ctx.documentos)}`);
   if (conversationSummary) dyn.push(`## Resumo das mensagens anteriores desta conversa\n${conversationSummary}`);
 
-  blocks.push({ text: dyn.join("\n\n"), cache: false });
-  return blocks;
+  return { system, dynamic: dyn.join("\n\n") };
+}
+
+/** Compatibilidade: blocos de system como antes (prefixo fixo + contexto no fim), sem cache no contexto. */
+export function buildSystemBlocks(mode: CoachMode, ctx: CoachContext, now = new Date(), conversationSummary?: string): SystemBlock[] {
+  const p = buildPrompt(mode, ctx, now, conversationSummary);
+  return [...p.system, { text: p.dynamic, cache: false }];
 }
