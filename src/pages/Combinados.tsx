@@ -7,8 +7,9 @@ import { aprovarCombinados, db, getCombinadosAtivos, getCombinadosPendentes, typ
 
 export default function CombinadosPage() {
   const navigate = useNavigate();
-  const vigente = useLiveQuery(getCombinadosAtivos, []);
-  const pendente = useLiveQuery(getCombinadosPendentes, []);
+  // undefined = carregando; null = não existe.
+  const vigente = useLiveQuery(async () => (await getCombinadosAtivos()) ?? null, []);
+  const pendente = useLiveQuery(async () => (await getCombinadosPendentes()) ?? null, []);
   // Mostra a proposta pendente quando existir; senão, a versão em vigor.
   const atual = pendente === undefined || vigente === undefined ? undefined : (pendente ?? vigente);
   const historico = useLiveQuery(() => db.combinados.orderBy("versao").reverse().toArray(), []);
