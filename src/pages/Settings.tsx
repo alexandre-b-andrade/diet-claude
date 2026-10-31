@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { Button, Card, Input, PageHeader } from "../components/ui";
@@ -6,6 +6,7 @@ import { db, getCombinadosAtivos, wipeAllData } from "../lib/db";
 import { backupFileName, exportBackup, importBackup, validateBackup } from "../lib/backup";
 import { gerarIcs } from "../lib/ics";
 import { buildDemoBackup } from "../lib/demo";
+import { backupSize, deleteSnapshot, getSnapshot, isDemoActive, PRE_DEMO, saveSnapshot, setDemoActive } from "../lib/snapshot";
 import { useRef } from "react";
 import { MODELS, cacheSavingsUsd, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
 import { useSettings } from "../lib/settings";
@@ -28,17 +29,52 @@ export default function SettingsPage() {
   const rem = settings.reminders;
   const notifPerm = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
 
-  async function doExport() {
-    const b = await exportBackup();
-    const blob = new Blob([JSON.stringify(b)], { type: "application/json" });
+  function downloadJson(obj: unknown, name: string) {
+    const blob = new Blob([JSON.stringify(obj)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = backupFileName();
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
-    const n = Object.values(b.tables).reduce((s, t) => s + (t?.length ?? 0), 0);
-    setBackupMsg(`Backup exportado com ${n} registros.`);
+  }
+
+  async function doExport() {
+    const b = await exportBackup();
+    downloadJson(b, backupFileName());
+    setBackupMsg(`Backup exportado com ${backupSize(b)} registros.`);
+  }
+
+  /** Antes de substituir os dados, baixa um backup e guarda uma cópia interna. */
+  async function preserveCurrent(prefix: string): Promise<number> {
+    const cur = await exportBackup();
+    const n = backupSize(cur);
+    if (n > 0) {
+      downloadJson(cur, `${prefix}-${new Date().toISOString().slice(0, 10)}.json`);
+      await saveSnapshot(PRE_DEMO, cur);
+    }
+    return n;
+  }
+
+  const [demoActive, setDemo] = useState(isDemoActive);
+  useEffect(() => {
+    const l = () => setDemo(isDemoActive());
+    window.addEventListener("dietcoach:demo", l);
+    return () => window.removeEventListener("dietcoach:demo", l);
+  }, []);
+
+  async function restoreMine() {
+    const snap = await getSnapshot(PRE_DEMO);
+    if (!confirm(snap ? "Restaurar seus dados salvos antes da demonstração? Os dados de demonstração serão apagados." : "Não há cópia interna dos seus dados. Apagar os dados de demonstração e começar do zero?")) return;
+    if (snap) {
+      await importBackup(snap.backup, "substituir");
+      await deleteSnapshot(PRE_DEMO);
+      setBackupMsg(`Seus dados foram restaurados (${backupSize(snap.backup)} registros).`);
+    } else {
+      await wipeAllData();
+      setBackupMsg("Dados de demonstração apagados.");
+    }
+    setDemoActive(false);
   }
 
   async function doImport(file: File | undefined, modo: "substituir" | "mesclar") {
@@ -46,8 +82,12 @@ export default function SettingsPage() {
     try {
       const json = JSON.parse(await file.text());
       if (!validateBackup(json)) throw new Error("Arquivo não é um backup do Diet Coach.");
-      if (modo === "substituir" && !confirm("Substituir TODOS os dados deste aparelho pelo backup? Esta ação não pode ser desfeita.")) return;
+      if (modo === "substituir") {
+        if (!confirm("Substituir TODOS os dados deste aparelho pelo backup? Um arquivo com os dados atuais será baixado antes, por segurança.")) return;
+        await preserveCurrent("diet-coach-antes-de-importar");
+      }
       const counts = await importBackup(json, modo);
+      if (isDemoActive()) setDemoActive(false);
       setBackupMsg(`Importado (${modo}): ${Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ")}.`);
     } catch (e) {
       setBackupMsg(`Erro ao importar: ${(e as Error).message}`);
@@ -59,10 +99,16 @@ export default function SettingsPage() {
   const DIAS = ["D", "S", "T", "Q", "Q", "S", "S"];
 
   async function loadDemo() {
-    if (!confirm("Carregar os dados de demonstração substitui TODOS os dados deste aparelho (conversas, diário, medidas). Exporte um backup antes se quiser guardar o que tem. Continuar?")) return;
+    if (!confirm("Carregar a demonstração substitui os dados deste aparelho. Antes disso, o app baixa um backup dos seus dados e guarda uma cópia interna para você restaurar depois. Continuar?")) return;
+    const n = await preserveCurrent("diet-coach-meus-dados-antes-demo");
     const b = buildDemoBackup();
     await importBackup(b, "substituir");
-    setBackupMsg("Dados de demonstração carregados: Marina, 8 semanas de registros. Para voltar aos seus dados, importe seu backup.");
+    setDemoActive(true);
+    setBackupMsg(
+      n > 0
+        ? `Demonstração carregada. Seus ${n} registros foram salvos em um arquivo baixado e em uma cópia interna: use "Restaurar meus dados" para voltar.`
+        : "Demonstração carregada. Não havia dados anteriores neste aparelho.",
+    );
     location.hash = "#/hoje";
   }
 
@@ -382,6 +428,16 @@ export default function SettingsPage() {
             </div>
             {backupMsg && <p className="mt-2 text-xs text-stone-600">{backupMsg}</p>}
           </Card>
+
+          {demoActive && (
+            <Card className="border-amber-200 bg-amber-50">
+              <p className="text-sm font-medium text-stone-800">Modo demonstração ativo</p>
+              <p className="mt-1 text-sm text-stone-600">Você está vendo os dados fictícios da Marina. Seus dados reais estão guardados em uma cópia interna e no arquivo baixado.</p>
+              <Button className="mt-3" onClick={restoreMine}>
+                Restaurar meus dados
+              </Button>
+            </Card>
+          )}
 
           <Card title="Demonstração">
             <p className="text-sm text-stone-600">

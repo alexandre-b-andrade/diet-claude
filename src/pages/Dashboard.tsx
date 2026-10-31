@@ -11,6 +11,7 @@ import { useReminders } from "../hooks/useReminders";
 import { useSettings } from "../lib/settings";
 import { formatUsd } from "../lib/pricing";
 import { useT } from "../i18n";
+import { isDemoActive } from "../lib/snapshot";
 const Trends = lazy(() => import("../components/Trends"));
 import { Card, PageHeader } from "../components/ui";
 import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile } from "../lib/db";
@@ -73,6 +74,16 @@ export default function DashboardPage() {
       />
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-2xl space-y-4">
+          {isDemoActive() && (
+            <Card className="border-amber-200 bg-amber-50">
+              <p className="text-sm">
+                <strong>Modo demonstração.</strong> Dados fictícios da Marina. Seus dados reais estão salvos.{" "}
+                <Link to="/config" className="underline">
+                  Restaurar meus dados
+                </Link>
+              </p>
+            </Card>
+          )}
           <InstallCard dismissible />
           <RemindersCard due={due} onDone={done} onSnooze={snooze} />
           {budget > 0 && gastoMes >= budget * 0.8 && (
