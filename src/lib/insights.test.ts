@@ -29,3 +29,11 @@ describe("insights", () => {
     expect(r.some((x) => x.texto.includes("Nada registrado hoje"))).toBe(true);
   });
 });
+
+describe("coffee insights", () => {
+  it("warns when today's coffees exceed the limit", () => {
+    const water7 = [1, 2, 3, 4].map((k) => ({ date: "2026-10-25", ml: 150, tipo: "cafe" as const, createdAt: k }));
+    const r = gerarInsights({ hoje: "2026-10-25", horaAgora: 10, meals7: [], water7, activities7: [], pesos: [], cinturas: [], cafeMaxXicaras: 3 });
+    expect(r.some((x) => x.texto.includes("4 cafés hoje"))).toBe(true);
+  });
+});

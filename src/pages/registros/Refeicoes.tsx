@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Card } from "../../components/ui";
-import { db, getCombinadosAtivos, type Meal } from "../../lib/db";
+import { db, getCombinadosAtivos, isAgua, isCafe, type Meal } from "../../lib/db";
 import { addDays, formatDateKey, todayKey } from "../../lib/dates";
 import { CLASSIFICACAO_LABEL, calcularSaldo, somarRefeicoes } from "../../lib/diary";
 
@@ -22,7 +22,8 @@ export default function Refeicoes() {
 
   const totais = somarRefeicoes(meals ?? []);
   const saldo = combinados ? calcularSaldo(totais, combinados) : undefined;
-  const aguaMl = (water ?? []).reduce((s, w) => s + w.ml, 0);
+  const aguaMl = (water ?? []).filter(isAgua).reduce((s, w) => s + w.ml, 0);
+  const cafes = (water ?? []).filter(isCafe).length;
 
   async function remove(m: Meal) {
     if (confirm(`Remover "${m.refeicao}: ${m.descricao}"?`)) await db.meals.delete(m.id!);
@@ -55,7 +56,7 @@ export default function Refeicoes() {
           <Tot label="Gordura" v={totais.gorduraG} unit="g" />
         </div>
         <p className="mt-2 text-center text-xs text-stone-500">
-          Fibras {totais.fibraG} g · Água {aguaMl} ml
+          Fibras {totais.fibraG} g · Água {aguaMl} ml · Café {cafes} {cafes === 1 ? "xícara" : "xícaras"}
         </p>
       </Card>
 

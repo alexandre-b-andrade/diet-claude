@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { db, type Meal, type MealItem } from "../lib/db";
+import { db, isAgua, isCafe, type Meal, type MealItem } from "../lib/db";
 import { nowTime, todayKey } from "../lib/dates";
 import { resumoDia, somarItens, somarRefeicoes } from "../lib/diary";
 import { lookupBarcode, porPorcao, searchFoods } from "../lib/foods";
@@ -138,7 +138,9 @@ export const consultarDiario = tool({
         resumoDia(
           d,
           ms.sort((a, b) => a.hora.localeCompare(b.hora)),
-          water.filter((w) => w.date === d).reduce((s, w) => s + w.ml, 0),
+          water.filter((w) => w.date === d && isAgua(w)).reduce((s, w) => s + w.ml, 0),
+          undefined,
+          { xicaras: water.filter((w) => w.date === d && isCafe(w)).length, ml: water.filter((w) => w.date === d && isCafe(w)).reduce((s, w) => s + w.ml, 0) },
         ),
       )
       .join("\n\n");
@@ -241,8 +243,21 @@ export const registrarAgua = tool({
   async run(input) {
     const date = input.date ?? todayKey();
     await db.water.add({ date, ml: input.ml, createdAt: Date.now() });
-    const total = (await db.water.where("date").equals(date).toArray()).reduce((s, w) => s + w.ml, 0);
+    const total = (await db.water.where("date").equals(date).toArray()).filter(isAgua).reduce((s, w) => s + w.ml, 0);
     return { result: JSON.stringify({ ok: true, totalDoDiaMl: total }), summary: `Água registrada: +${input.ml} ml (total ${total} ml)` };
+  },
+});
+
+export const registrarCafe = tool({
+  name: "registrar_cafe",
+  description: "Registra um café (uma xícara por chamada) com o volume em ml (espresso 50, xícara 150, caneca 250). Padrão hoje.",
+  schema: z.object({ ml: opt(z.number().int().positive()), date: opt(z.string()) }),
+  async run(input) {
+    const date = input.date ?? todayKey();
+    const ml = input.ml ?? 150;
+    await db.water.add({ date, ml, tipo: "cafe", createdAt: Date.now() });
+    const cafes = (await db.water.where("date").equals(date).toArray()).filter(isCafe);
+    return { result: JSON.stringify({ ok: true, xicarasHoje: cafes.length, mlHoje: cafes.reduce((s, w) => s + w.ml, 0) }), summary: `Café registrado: ${cafes.length}ª xícara (${ml} ml)` };
   },
 });
 
@@ -261,4 +276,5 @@ export const DIARY_TOOLS: CoachTool[] = [
   buscarCodigoBarras,
   salvarAlimento,
   registrarAgua,
+  registrarCafe,
 ];

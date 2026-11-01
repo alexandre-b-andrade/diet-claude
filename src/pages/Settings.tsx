@@ -177,6 +177,12 @@ export default function SettingsPage() {
                 ? `Combinados v${combinados.versao} ${combinados.status === "aprovado" ? "aprovados" : "aguardando aprovação"}.`
                 : "Entrevista inicial ainda não concluída."}
             </p>
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <label htmlFor="coffee" className="text-stone-500">
+                Limite de cafés por dia
+              </label>
+              <Input id="coffee" type="number" min="0" max="20" className="w-20" value={settings.coffeeMaxCups} onChange={(e) => update({ coffeeMaxCups: Math.max(0, Number(e.target.value) || 0) })} />
+            </div>
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
               <Link to="/combinados" className="rounded-xl bg-stone-100 px-4 py-2 font-medium text-stone-800">
                 Ver Combinados

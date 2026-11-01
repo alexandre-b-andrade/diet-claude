@@ -111,6 +111,14 @@ export const pt = {
   "settings.usdaHint": "Quando a TACO não encontrar um alimento, busca na base americana. Sem chave usa DEMO_KEY, com limite baixo por hora.",
   "settings.usdaEnable": "Habilitar busca no USDA",
   "settings.usdaKey": "Chave da API (opcional)",
+  // ingestão (água, café)
+  "intake.undo": "Desfazer último",
+  "intake.entries": "{n} registros",
+  "intake.remove": "Remover",
+  "intake.limit": "limite",
+  "today.coffee": "Café",
+  "today.coffeeCups": "{n} cafés",
+  "today.coffeeCup": "1 café",
   // instalação
   "install.title": "Instale o app no celular",
   "install.why": "Fica com ícone na tela inicial, abre em tela cheia, funciona offline para consultar seus dados e recebe lembretes.",

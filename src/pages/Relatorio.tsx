@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Printer } from "lucide-react";
 import { useT } from "../i18n";
-import { db, getCombinadosAtivos, getProfile } from "../lib/db";
+import { db, getCombinadosAtivos, getProfile, isAgua } from "../lib/db";
 import { addDays, formatDateKey, todayKey } from "../lib/dates";
 import { mediaMovel, tendencia, umPorDia } from "../lib/body";
 import { somarRefeicoes } from "../lib/diary";
@@ -26,7 +26,7 @@ export default function RelatorioPage() {
   const bios = useLiveQuery(async () => (await db.bioimpedance.where("date").aboveOrEqual(inicio).toArray()).sort((a, b) => a.date.localeCompare(b.date)), [inicio]);
   const labs = useLiveQuery(async () => (await db.labs.toArray()).sort((a, b) => a.date.localeCompare(b.date)), []);
   const meals = useLiveQuery(() => db.meals.where("date").between(inicio, hoje, true, true).toArray(), [inicio, hoje]);
-  const water = useLiveQuery(() => db.water.where("date").between(inicio, hoje, true, true).toArray(), [inicio, hoje]);
+  const water = useLiveQuery(async () => (await db.water.where("date").between(inicio, hoje, true, true).toArray()).filter(isAgua), [inicio, hoje]);
   const acts = useLiveQuery(() => db.activities.where("date").between(inicio, hoje, true, true).toArray(), [inicio, hoje]);
   const reviews = useLiveQuery(async () => (await db.reviews.toArray()).filter((r) => r.semanaFim >= inicio).sort((a, b) => b.semanaInicio.localeCompare(a.semanaInicio)), [inicio]);
   const docs = useLiveQuery(() => db.documents.toArray(), []);

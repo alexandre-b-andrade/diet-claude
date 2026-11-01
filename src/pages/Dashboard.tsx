@@ -1,7 +1,8 @@
 import { Suspense, lazy } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
-import { Droplets, MessageCircle } from "lucide-react";
+import { Coffee, Droplets, MessageCircle } from "lucide-react";
+import IntakeCard from "../components/IntakeCard";
 import InstallCard from "../components/InstallCard";
 import Insights from "../components/Insights";
 import RemindersCard from "../components/RemindersCard";
@@ -14,7 +15,7 @@ import { useT } from "../i18n";
 import { isDemoActive } from "../lib/snapshot";
 const Trends = lazy(() => import("../components/Trends"));
 import { Card, PageHeader } from "../components/ui";
-import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile } from "../lib/db";
+import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile, isAgua, isCafe } from "../lib/db";
 import { todayKey } from "../lib/dates";
 import { CLASSIFICACAO_LABEL, calcularSaldo, somarRefeicoes } from "../lib/diary";
 import { idadeAnos } from "../lib/metas";
@@ -54,13 +55,12 @@ export default function DashboardPage() {
 
   const totais = somarRefeicoes(meals ?? []);
   const saldo = combinados ? calcularSaldo(totais, combinados, (treinos?.length ?? 0) > 0) : undefined;
-  const aguaMl = (water ?? []).reduce((s, w) => s + w.ml, 0);
+  const aguaEntries = (water ?? []).filter(isAgua);
+  const cafeEntries = (water ?? []).filter(isCafe);
+  const aguaMl = aguaEntries.reduce((s, w) => s + w.ml, 0);
   const aguaMeta = combinados?.aguaMl ?? 2500;
   const onboardingPending = !profile || profile.status !== "active";
 
-  async function addWater(ml: number) {
-    await db.water.add({ date: hoje, ml, createdAt: Date.now() });
-  }
 
   return (
     <div className="flex h-full flex-col">
@@ -184,30 +184,40 @@ export default function DashboardPage() {
             </Link>
           </Card>
 
-          <Card title={t("today.water")}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Droplets className="text-sky-600" size={20} />
-                <span>
-                  <strong>{aguaMl} ml</strong> <span className="text-stone-500">{t("today.of")} {aguaMeta} ml</span>
-                </span>
-              </div>
-              <div className="flex gap-1">
-                {[200, 300, 500].map((ml) => (
-                  <button
-                    key={ml}
-                    onClick={() => addWater(ml)}
-                    className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100"
-                  >
-                    +{ml}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-100">
-              <div className="h-full bg-sky-500" style={{ width: `${Math.min(100, (aguaMl / aguaMeta) * 100)}%` }} />
-            </div>
-          </Card>
+          <IntakeCard
+            title={t("today.water")}
+            icon={<Droplets className="text-sky-600" size={20} />}
+            entries={aguaEntries}
+            value={aguaMl}
+            goal={aguaMeta}
+            unit="ml"
+            quick={[200, 300, 500].map((ml) => ({ label: `+${ml}`, ml }))}
+            tipo="agua"
+            date={hoje}
+            color="bg-sky-500"
+            accent="bg-sky-50 text-sky-700 hover:bg-sky-100"
+            summary={`${aguaMl} ml`}
+          />
+
+          <IntakeCard
+            title={t("today.coffee")}
+            icon={<Coffee className="text-amber-700" size={20} />}
+            entries={cafeEntries}
+            value={cafeEntries.length}
+            goal={settings.coffeeMaxCups}
+            unit={cafeEntries.length === 1 ? "" : ""}
+            limit
+            quick={[
+              { label: "Espresso 50", ml: 50 },
+              { label: "Xícara 150", ml: 150 },
+              { label: "Caneca 250", ml: 250 },
+            ]}
+            tipo="cafe"
+            date={hoje}
+            color="bg-amber-600"
+            accent="bg-amber-50 text-amber-800 hover:bg-amber-100"
+            summary={cafeEntries.length === 1 ? t("today.coffeeCup") : t("today.coffeeCups", { n: cafeEntries.length })}
+          />
 
           {!onboardingPending && <Insights />}
           {!onboardingPending && <WeeklyReviewCard />}
