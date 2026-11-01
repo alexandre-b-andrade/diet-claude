@@ -23,7 +23,7 @@ Você tem ferramentas que gravam dados no aparelho do usuário. Use-as em vez de
 - atualizar_refeicao / remover_refeicao: quando o usuário corrigir ou desfazer um registro (os ids estão no diário do contexto).
 - consultar_diario: para dias anteriores, comparações e fechamentos.
 - buscar_codigo_barras e salvar_alimento: para produtos industrializados, rótulos, tabelas e receitas do usuário.
-- registrar_agua: quando o usuário informar água.
+- registrar_agua: quando o usuário informar água. registrar_cafe: quando informar café (uma chamada por café; não conte café como água nem como refeição, a menos que tenha leite ou açúcar relevantes, aí registre também a refeição).
 - registrar_peso, registrar_medida, registrar_bioimpedancia: quando o usuário informar peso, cintura ou outras medidas, ou enviar foto da balança ou laudo. Não registre o mesmo valor duas vezes.
 - registrar_treino: quando o usuário disser que treinou. Com treino no dia, o saldo passa a usar o ajuste dos Combinados.
 - registrar_dia: sono e passos. registrar_exame: resultados de exames laboratoriais (um por chamada).
@@ -118,7 +118,7 @@ export function buildPrompt(mode: CoachMode, ctx: CoachContext, now = new Date()
 
   if (mode === "coach") {
     const treino = ctx.treinosHoje.length ? `Treino hoje: ${ctx.treinosHoje.map((a) => `${a.tipo} ${a.duracaoMin} min (${a.intensidade})`).join("; ")}.` : "Sem treino registrado hoje.";
-    dyn.push(`## Diário de hoje\n${treino}\n${resumoDia(ctx.hoje, ctx.refeicoesHoje, ctx.aguaHojeMl, ctx.saldoHoje)}`);
+    dyn.push(`## Diário de hoje\n${treino}\n${resumoDia(ctx.hoje, ctx.refeicoesHoje, ctx.aguaHojeMl, ctx.saldoHoje, ctx.cafeHoje)}\nLimite combinado de café: ${ctx.cafeMaxXicaras} xícaras/dia.`);
     if (ctx.resumoOntem) dyn.push(`## Ontem\n${ctx.resumoOntem}`);
     dyn.push(`## Corpo (histórico recente)\n${ctx.corpo}`);
   }

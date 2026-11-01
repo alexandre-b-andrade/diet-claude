@@ -15,13 +15,13 @@ describe("demo backup", () => {
     const b = buildDemoBackup(new Date(2026, 9, 30, 12));
     expect(validateBackup(b)).toBe(true);
     const meals = b.tables.meals as { date: string; kcal: number; proteinaG: number; carboG: number; gorduraG: number; fibraG: number }[];
-    expect(meals.length).toBeGreaterThan(150);
+    expect(meals.length).toBeGreaterThan(190);
     const dias = [...new Set(meals.map((m) => m.date))];
     expect(dias.length).toBeGreaterThan(45);
     // média diária plausível para a meta de 1.850–1.900 kcal
     const medias = dias.map((d) => somarRefeicoes(meals.filter((m) => m.date === d)).kcal);
     const media = medias.reduce((a, x) => a + x, 0) / medias.length;
-    expect(media).toBeGreaterThan(1400);
+    expect(media).toBeGreaterThan(1500);
     expect(media).toBeLessThan(2300);
     const c = (b.tables.combinados as { status: string }[]).find((x) => x.status === "aprovado");
     expect(c).toBeDefined();

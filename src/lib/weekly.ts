@@ -1,4 +1,4 @@
-import type { Activity, Combinados, Meal, Measurement, WaterEntry } from "./db";
+import { isAgua, type Activity, type Combinados, type Meal, type Measurement, type WaterEntry } from "./db";
 import { addDays, fromDateKey, toDateKey } from "./dates";
 import { mediaMovel, umPorDia } from "./body";
 import { somarRefeicoes } from "./diary";
@@ -54,7 +54,7 @@ export function metricasSemana(
     const treino = activities.some((a) => a.date === d);
     const t = somarRefeicoes(ms);
     const meta = combinados ? combinados.metaKcal + (treino ? combinados.treinoAjusteKcal : 0) : null;
-    return { d, ms, t, meta, registrado: ms.length > 0, agua: water.filter((w) => w.date === d).reduce((s, w) => s + w.ml, 0) };
+    return { d, ms, t, meta, registrado: ms.length > 0, agua: water.filter((w) => w.date === d && isAgua(w)).reduce((s, w) => s + w.ml, 0) };
   });
   const reg = porDia.filter((x) => x.registrado);
   const avg = (f: (x: (typeof reg)[number]) => number) => (reg.length ? Math.round((reg.reduce((s, x) => s + f(x), 0) / reg.length) * 10) / 10 : null);

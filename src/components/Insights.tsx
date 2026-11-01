@@ -4,6 +4,7 @@ import { Card } from "./ui";
 import { db, getCombinadosAtivos, getProfile } from "../lib/db";
 import { addDays, todayKey } from "../lib/dates";
 import { gerarInsights } from "../lib/insights";
+import { useSettings } from "../lib/settings";
 
 const ICON = {
   positivo: <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-brand-700" />,
@@ -14,6 +15,7 @@ const ICON = {
 export default function Insights() {
   const hoje = todayKey();
   const inicio = addDays(hoje, -6);
+  const { settings } = useSettings();
   const profile = useLiveQuery(getProfile, []);
   const combinados = useLiveQuery(getCombinadosAtivos, []);
   const meals7 = useLiveQuery(() => db.meals.where("date").between(inicio, hoje, true, true).toArray(), [hoje]);
@@ -23,7 +25,7 @@ export default function Insights() {
   const cinturas = useLiveQuery(() => db.measurements.where("tipo").equals("cintura").toArray(), []);
 
   if (!meals7 || !water7 || !activities7 || !pesos || !cinturas) return null;
-  const list = gerarInsights({ hoje, horaAgora: new Date().getHours(), profile, combinados, meals7, water7, activities7, pesos, cinturas });
+  const list = gerarInsights({ hoje, horaAgora: new Date().getHours(), profile, combinados, meals7, water7, activities7, pesos, cinturas, cafeMaxXicaras: settings.coffeeMaxCups });
   if (!list.length) return null;
 
   return (

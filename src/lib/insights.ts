@@ -1,4 +1,4 @@
-import type { Activity, Combinados, Meal, Measurement, Profile, WaterEntry } from "./db";
+import { isAgua, isCafe, type Activity, type Combinados, type Meal, type Measurement, type Profile, type WaterEntry } from "./db";
 import { addDays, lastDays } from "./dates";
 import { ritmoSemanalPct, tendencia, umPorDia } from "./body";
 import { somarRefeicoes } from "./diary";
@@ -18,6 +18,7 @@ export interface InsightInput {
   activities7: Activity[];
   pesos: Measurement[];
   cinturas: Measurement[];
+  cafeMaxXicaras?: number;
 }
 
 /** Regras determinísticas sobre os últimos 7 dias. */
@@ -46,12 +47,21 @@ export function gerarInsights(i: InsightInput): Insight[] {
     if (semRegistro >= 3) out.push({ nivel: "info", texto: `${semRegistro} dos últimos 6 dias sem refeições registradas. O saldo e o fechamento ficam imprecisos.` });
 
     if (c.aguaMl) {
-      const aguaDias = dias.filter((d) => d !== i.hoje).map((d) => i.water7.filter((w) => w.date === d).reduce((s, w) => s + w.ml, 0)).filter((v) => v > 0);
+      const aguaDias = dias.filter((d) => d !== i.hoje).map((d) => i.water7.filter((w) => w.date === d && isAgua(w)).reduce((s, w) => s + w.ml, 0)).filter((v) => v > 0);
       if (aguaDias.length >= 3) {
         const media = aguaDias.reduce((a, b) => a + b, 0) / aguaDias.length;
         if (media < c.aguaMl * 0.7) out.push({ nivel: "atencao", texto: `Água média de ${Math.round(media)} ml/dia, abaixo de 70% da meta de ${c.aguaMl} ml.` });
       }
     }
+  }
+
+  // Café
+  const cafeMax = i.cafeMaxXicaras;
+  if (cafeMax) {
+    const cafesHoje = i.water7.filter((w) => w.date === i.hoje && isCafe(w)).length;
+    if (cafesHoje > cafeMax) out.push({ nivel: "atencao", texto: `${cafesHoje} cafés hoje, acima do limite de ${cafeMax}. Cafeína tarde prejudica o sono.` });
+    const diasAcima = dias.filter((d) => d !== i.hoje && i.water7.filter((w) => w.date === d && isCafe(w)).length > cafeMax).length;
+    if (diasAcima >= 3) out.push({ nivel: "info", texto: `Café acima do limite em ${diasAcima} dos últimos 6 dias.` });
   }
 
   // Peso

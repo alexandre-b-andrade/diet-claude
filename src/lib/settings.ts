@@ -16,12 +16,14 @@ export interface Settings {
   usdaApiKey: string;
   /** Idioma da interface e do coach. */
   language: "pt-BR" | "en";
+  /** Limite diário de cafés (xícaras). */
+  coffeeMaxCups: number;
 }
 
 const SETTINGS_KEY = "dietcoach.settings";
 const API_KEY = "dietcoach.apiKey";
 
-const DEFAULTS: Settings = { model: DEFAULT_MODEL, rememberKey: true, brlRate: 5.5, monthlyBudgetUsd: 0, reminders: REMINDER_DEFAULTS, usdaEnabled: false, usdaApiKey: "", language: "pt-BR" };
+const DEFAULTS: Settings = { model: DEFAULT_MODEL, rememberKey: true, brlRate: 5.5, monthlyBudgetUsd: 0, reminders: REMINDER_DEFAULTS, usdaEnabled: false, usdaApiKey: "", language: "pt-BR", coffeeMaxCups: 3 };
 
 const listeners = new Set<() => void>();
 function notify() {

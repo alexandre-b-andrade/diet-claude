@@ -1,4 +1,4 @@
-import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile, type Activity, type Combinados, type Meal, type Profile, type UserDocument } from "../lib/db";
+import { db, getCombinadosAtivos, getCombinadosPendentes, getProfile, isAgua, isCafe, type Activity, type Combinados, type Meal, type Profile, type UserDocument } from "../lib/db";
 import { addDays, todayKey } from "../lib/dates";
 import { calcularSaldo, resumoDia, somarRefeicoes, type Saldo } from "../lib/diary";
 import { mediaMovel, projecao, tendencia, umPorDia } from "../lib/body";
@@ -13,6 +13,8 @@ export interface CoachContext {
   hoje: string;
   refeicoesHoje: Meal[];
   aguaHojeMl: number;
+  cafeHoje: { xicaras: number; ml: number };
+  cafeMaxXicaras: number;
   saldoHoje?: Saldo;
   resumoOntem?: string;
   treinosHoje: Activity[];
@@ -37,7 +39,9 @@ export async function loadCoachContext(): Promise<CoachContext> {
     resumoCorpo(hoje),
     db.documents.toArray(),
   ]);
-  const aguaHojeMl = aguaHoje.reduce((s, w) => s + w.ml, 0);
+  const aguaHojeMl = aguaHoje.filter(isAgua).reduce((s, w) => s + w.ml, 0);
+  const cafes = aguaHoje.filter(isCafe);
+  const cafeHoje = { xicaras: cafes.length, ml: cafes.reduce((s, w) => s + w.ml, 0) };
   const saldoHoje = combinados ? calcularSaldo(somarRefeicoes(refeicoesHoje), combinados, treinosHoje.length > 0) : undefined;
   return {
     profile,
@@ -46,8 +50,12 @@ export async function loadCoachContext(): Promise<CoachContext> {
     hoje,
     refeicoesHoje,
     aguaHojeMl,
+    cafeHoje,
+    cafeMaxXicaras: loadSettings().coffeeMaxCups,
     saldoHoje,
-    resumoOntem: refeicoesOntem.length ? resumoDia(ontem, refeicoesOntem, aguaOntem.reduce((s, w) => s + w.ml, 0)) : undefined,
+    resumoOntem: refeicoesOntem.length
+      ? resumoDia(ontem, refeicoesOntem, aguaOntem.filter(isAgua).reduce((s, w) => s + w.ml, 0), undefined, { xicaras: aguaOntem.filter(isCafe).length, ml: aguaOntem.filter(isCafe).reduce((s, w) => s + w.ml, 0) })
+      : undefined,
     treinosHoje,
     corpo,
     documentos: documentos.sort((a, b) => b.createdAt - a.createdAt),

@@ -52,11 +52,17 @@ const CAFES: { descricao: string; itens: MealItem[]; cls: Meal["classificacao"];
   { descricao: "Pão na chapa com manteiga e café", itens: [item("Pão francês", 1, "unidade", 50, 150, 4.0, 29.3, 1.6, 1.2), item("Manteiga com sal", 1, "colher de chá", 10, 73, 0.1, 0, 8.2), item("Café preto", 1, "xícara", 100, 3, 0.2, 0.7, 0)], cls: "atencao", motivo: "Pouca proteína no café da manhã" },
 ];
 const ALMOCOS: typeof CAFES = [
-  { descricao: "Arroz integral, feijão carioca, frango grelhado e salada", itens: [item("Arroz integral cozido", 4, "colheres de sopa", 120, 149, 3.1, 31.0, 1.2, 3.2), item("Feijão carioca cozido", 1, "concha", 100, 76, 4.8, 13.6, 0.5, 8.5), item("Frango, peito, grelhado", 150, "g", 150, 239, 48.0, 0, 3.9), item("Salada de alface e tomate", 1, "prato", 120, 24, 1.4, 4.4, 0.3, 1.6, "estimativa")], cls: "dentro" },
-  { descricao: "Carne moída refogada, arroz, feijão e abobrinha", itens: [item("Carne bovina moída refogada", 120, "g", 120, 258, 32.0, 0, 13.6), item("Arroz branco cozido", 4, "colheres de sopa", 120, 154, 3.0, 33.7, 0.2, 1.9), item("Feijão preto cozido", 1, "concha", 100, 77, 4.5, 14.0, 0.5, 8.4), item("Abobrinha refogada", 3, "colheres de sopa", 90, 25, 1.1, 3.6, 0.9, 1.4)], cls: "dentro" },
-  { descricao: "Tilápia assada com batata doce e brócolis", itens: [item("Tilápia, filé, assado", 160, "g", 160, 154, 32.0, 0, 2.6), item("Batata doce cozida", 150, "g", 150, 116, 1.0, 28.3, 0.2, 3.3), item("Brócolis cozido", 1, "xícara", 90, 23, 2.0, 3.9, 0.4, 3.1)], cls: "dentro" },
+  { descricao: "Arroz integral, feijão carioca, frango grelhado e salada", itens: [item("Arroz integral cozido", 5, "colheres de sopa", 150, 186, 3.9, 38.7, 1.5, 4.0), item("Feijão carioca cozido", 1.5, "concha", 150, 114, 7.2, 20.4, 0.8, 12.7), item("Frango, peito, grelhado", 180, "g", 180, 287, 57.6, 0, 4.7), item("Salada de alface e tomate", 1, "prato", 120, 24, 1.4, 4.4, 0.3, 1.6, "estimativa")], cls: "dentro" },
+  { descricao: "Carne moída refogada, arroz, feijão e abobrinha", itens: [item("Carne bovina moída refogada", 150, "g", 150, 323, 40.0, 0, 17.0), item("Arroz branco cozido", 5, "colheres de sopa", 150, 193, 3.8, 42.1, 0.3, 2.4), item("Feijão preto cozido", 1.5, "concha", 150, 116, 6.8, 21.0, 0.8, 12.6), item("Abobrinha refogada", 3, "colheres de sopa", 90, 25, 1.1, 3.6, 0.9, 1.4)], cls: "dentro" },
+  { descricao: "Tilápia assada com batata doce e brócolis", itens: [item("Tilápia, filé, assado", 200, "g", 200, 192, 40.0, 0, 3.2), item("Batata doce cozida", 200, "g", 200, 154, 1.3, 37.7, 0.3, 4.4), item("Azeite de oliva", 1, "colher de sopa", 8, 72, 0, 0, 8.0), item("Brócolis cozido", 1, "xícara", 90, 23, 2.0, 3.9, 0.4, 3.1)], cls: "dentro" },
   { descricao: "Macarrão à bolonhesa com queijo ralado", itens: [item("Macarrão cozido", 1, "prato", 200, 222, 7.2, 46.0, 1.2, 3.2), item("Molho bolonhesa", 1, "concha", 150, 210, 15.0, 8.0, 12.0, 1.5, "estimativa"), item("Queijo parmesão ralado", 1, "colher de sopa", 10, 45, 3.6, 0.2, 3.3)], cls: "atencao", motivo: "Carboidrato alto para o almoço e proteína abaixo do ideal" },
   { descricao: "Estrogonofe de frango com arroz e batata palha", itens: [item("Estrogonofe de frango", 1, "concha", 180, 290, 24.0, 8.0, 18.0, 0.5, "estimativa"), item("Arroz branco cozido", 4, "colheres de sopa", 120, 154, 3.0, 33.7, 0.2, 1.9), item("Batata palha", 2, "colheres de sopa", 20, 104, 1.0, 10.0, 6.8, 0.6, "estimativa")], cls: "atencao", motivo: "Creme de leite e batata palha elevam gordura" },
+];
+const LANCHES_MANHA: typeof CAFES = [
+  { descricao: "1 banana e 10 castanhas", itens: [item("Banana prata", 1, "unidade", 80, 78, 1.0, 20.8, 0.1, 1.6), item("Castanha de caju torrada", 10, "unidades", 20, 114, 3.7, 5.9, 9.3, 0.7)], cls: "dentro" },
+  { descricao: "Maçã e iogurte natural", itens: [item("Maçã fuji", 1, "unidade", 130, 73, 0.4, 19.7, 0.3, 1.7), item("Iogurte natural desnatado", 1, "pote", 170, 71, 7.1, 9.6, 0.5)], cls: "dentro" },
+  { descricao: "Mamão com aveia", itens: [item("Mamão papaia", 1, "fatia", 170, 68, 0.9, 17.7, 0.2, 3.1), item("Aveia em flocos", 2, "colheres de sopa", 20, 79, 2.8, 13.4, 1.7, 1.8)], cls: "dentro" },
+  { descricao: "Barra de proteína", itens: [item("Barra de proteína", 1, "unidade", 45, 180, 15.0, 18.0, 6.0, 2.0, "openfoodfacts")], cls: "dentro" },
 ];
 const LANCHES: typeof CAFES = [
   { descricao: "Whey com água e 1 maçã", itens: [item("Whey protein (dose)", 1, "scoop", 30, 120, 24.0, 3.0, 1.5, 0, "usuario"), item("Maçã fuji", 1, "unidade", 130, 73, 0.4, 19.7, 0.3, 1.7)], cls: "dentro" },
@@ -65,8 +71,8 @@ const LANCHES: typeof CAFES = [
   { descricao: "Iogurte proteico e morangos", itens: [item("Iogurte proteico", 1, "pote", 150, 90, 15.0, 6.0, 0.5, 0, "openfoodfacts"), item("Morango", 10, "unidades", 120, 36, 1.1, 8.2, 0.4, 2.0)], cls: "dentro" },
 ];
 const JANTARES: typeof CAFES = [
-  { descricao: "Omelete de 3 ovos com queijo e salada", itens: [item("Omelete de ovos", 3, "ovos", 150, 240, 19.5, 2.4, 17.0), item("Queijo muçarela", 1, "fatia", 20, 56, 4.5, 0.6, 4.0), item("Salada verde com azeite", 1, "prato", 120, 70, 1.5, 4.0, 5.5, 1.6, "estimativa")], cls: "dentro" },
-  { descricao: "Sopa de legumes com frango desfiado", itens: [item("Sopa de legumes", 1, "prato fundo", 300, 120, 4.0, 20.0, 2.5, 4.0, "estimativa"), item("Frango, peito, cozido, desfiado", 100, "g", 100, 163, 31.5, 0, 3.2)], cls: "dentro" },
+  { descricao: "Omelete de 3 ovos com queijo e salada", itens: [item("Omelete de ovos", 3, "ovos", 150, 240, 19.5, 2.4, 17.0), item("Queijo muçarela", 1, "fatia", 20, 56, 4.5, 0.6, 4.0), item("Pão integral", 1, "fatia", 30, 75, 3.0, 13.0, 1.1, 2.1), item("Salada verde com azeite", 1, "prato", 120, 70, 1.5, 4.0, 5.5, 1.6, "estimativa")], cls: "dentro" },
+  { descricao: "Sopa de legumes com frango desfiado", itens: [item("Sopa de legumes", 1, "prato fundo", 350, 140, 4.7, 23.3, 2.9, 4.7, "estimativa"), item("Frango, peito, cozido, desfiado", 120, "g", 120, 196, 37.8, 0, 3.8), item("Torrada integral", 2, "unidades", 20, 76, 2.6, 14.4, 0.8, 1.6)], cls: "dentro" },
   { descricao: "Salmão grelhado com purê de mandioquinha", itens: [item("Salmão grelhado", 140, "g", 140, 335, 36.5, 0, 20.0), item("Purê de mandioquinha", 3, "colheres de sopa", 120, 124, 1.0, 29.0, 0.3, 2.2, "estimativa")], cls: "dentro" },
   { descricao: "Pizza de calabresa (3 fatias) e refrigerante", itens: [item("Pizza de calabresa", 3, "fatias", 300, 810, 33.0, 84.0, 36.0, 4.5, "estimativa"), item("Refrigerante cola", 1, "lata", 350, 147, 0, 37.0, 0)], cls: "fora", motivo: "Ultraprocessado, açúcar e gordura; estourou o saldo do dia" },
   { descricao: "Hambúrguer artesanal com batata frita", itens: [item("Hambúrguer artesanal", 1, "unidade", 250, 620, 32.0, 42.0, 34.0, 2.0, "estimativa"), item("Batata frita", 1, "porção média", 120, 312, 3.8, 41.4, 14.9, 3.2)], cls: "fora", motivo: "Fritura e gordura alta; saldo estourado" },
@@ -201,14 +207,16 @@ export function buildDemoBackup(hoje = new Date()): Backup {
     const lanche = pick(LANCHES);
     const semJantarPesado = !fimDeSemana || rand() < 0.5;
     const jantar = semJantarPesado ? pick(JANTARES.slice(0, 3)) : pick(JANTARES.slice(3));
+    const lancheManha = pick(LANCHES_MANHA);
     const plano: [string, string, (typeof CAFES)[number]][] = [
       ["07:10", "Café da manhã", cafe],
+      ["10:05", "Lanche da manhã", lancheManha],
       ["12:40", "Almoço", almoco],
       ["16:05", "Lanche da tarde", lanche],
       ["19:45", "Jantar", jantar],
     ];
     // Dia incompleto de vez em quando (esqueceu o jantar)
-    const registrar = rand() < 0.08 ? plano.slice(0, 3) : plano;
+    const registrar = rand() < 0.08 ? plano.slice(0, 4) : plano;
     for (const [hora, refeicao, r] of registrar) {
       const itens = r.itens.map((x) => ({ ...x }));
       const t = somarItens(itens);
@@ -226,7 +234,9 @@ export function buildDemoBackup(hoje = new Date()): Backup {
       });
     }
     const copos = 5 + Math.floor(rand() * 5);
-    for (let k = 0; k < copos; k++) water.push({ date, ml: [200, 250, 300, 500][Math.floor(rand() * 4)], createdAt: ts(date, `${String(8 + k * 2).padStart(2, "0")}:00`) });
+    for (let k = 0; k < copos; k++) water.push({ date, ml: [200, 250, 300, 500][Math.floor(rand() * 4)], tipo: "agua", createdAt: ts(date, `${String(8 + k * 2).padStart(2, "0")}:00`) });
+    const cafes = 1 + Math.floor(rand() * 3) + (rand() < 0.15 ? 1 : 0);
+    for (let k = 0; k < cafes; k++) water.push({ date, ml: [50, 150, 150, 250][Math.floor(rand() * 4)], tipo: "cafe", createdAt: ts(date, ["07:30", "10:15", "14:30", "16:40"][k] ?? "17:30") });
     if (rand() < 0.8) daily.push({ date, sonoHoras: Math.round((6.2 + rand() * 1.8) * 10) / 10, passos: 4000 + Math.round(rand() * 7000), updatedAt: ts(date, "22:30") });
   }
 

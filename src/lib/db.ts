@@ -157,7 +157,12 @@ export interface WaterEntry {
   date: string;
   ml: number;
   createdAt: number;
+  /** "agua" (padrão, quando ausente) ou "cafe". */
+  tipo?: "agua" | "cafe";
 }
+
+export const isAgua = (w: WaterEntry) => !w.tipo || w.tipo === "agua";
+export const isCafe = (w: WaterEntry) => w.tipo === "cafe";
 
 /** Alimento do usuário (tabela própria, rótulo, código de barras ou USDA). Valores por 100 g. */
 export interface CustomFood {

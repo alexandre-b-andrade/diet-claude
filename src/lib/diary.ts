@@ -75,7 +75,7 @@ export const CLASSIFICACAO_LABEL: Record<Classificacao, string> = {
 };
 
 /** Resumo do dia em texto para o contexto do coach. */
-export function resumoDia(date: string, meals: Meal[], aguaMl: number, saldo?: Saldo): string {
+export function resumoDia(date: string, meals: Meal[], aguaMl: number, saldo?: Saldo, cafe?: { xicaras: number; ml: number }): string {
   const linhas = [`### ${date}`];
   if (!meals.length) linhas.push("Nenhuma refeição registrada.");
   for (const m of meals) {
@@ -84,7 +84,7 @@ export function resumoDia(date: string, meals: Meal[], aguaMl: number, saldo?: S
     );
   }
   const t = somarRefeicoes(meals);
-  linhas.push(`Total: ${t.kcal} kcal, P ${t.proteinaG} g, C ${t.carboG} g, G ${t.gorduraG} g, fibras ${t.fibraG} g. Água: ${aguaMl} ml.`);
+  linhas.push(`Total: ${t.kcal} kcal, P ${t.proteinaG} g, C ${t.carboG} g, G ${t.gorduraG} g, fibras ${t.fibraG} g. Água: ${aguaMl} ml.${cafe ? ` Café: ${cafe.xicaras} ${cafe.xicaras === 1 ? "xícara" : "xícaras"} (${cafe.ml} ml).` : ""}`);
   if (saldo) {
     linhas.push(
       `Saldo: faltam ${saldo.restanteKcal} kcal e ${saldo.restanteProteinaG} g de proteína para a meta (${saldo.metaKcal} kcal / ${saldo.metaProteinaG} g${saldo.diaDeTreino ? ", dia de treino" : ""}).`,
