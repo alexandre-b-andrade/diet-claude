@@ -4,6 +4,7 @@ import { Button, Input } from "../components/ui";
 import { describeError, validateApiKey } from "../lib/claude";
 import { useSettings } from "../lib/settings";
 import { useT } from "../i18n";
+import { isAdvanced } from "../lib/settings";
 import InstallCard from "../components/InstallCard";
 
 export default function SetupPage() {
@@ -36,6 +37,7 @@ export default function SetupPage() {
         <img src="icons/icon.svg" alt="" className="mx-auto mb-4 h-20 w-20" />
         <h1 className="text-2xl font-semibold">Diet Coach</h1>
         <p className="mt-2 text-sm text-stone-600">{t("setup.tagline")}</p>
+        {isAdvanced() && (
         <div className="mt-3 flex justify-center gap-1 text-xs">
           {(["pt-BR", "en"] as const).map((l) => (
             <button key={l} type="button" onClick={() => update({ language: l })} className={`rounded-full px-3 py-1 ${lang === l ? "bg-brand-700 text-white" : "bg-stone-100 text-stone-600"}`}>
@@ -43,6 +45,7 @@ export default function SetupPage() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       <form onSubmit={submit} className="space-y-4">

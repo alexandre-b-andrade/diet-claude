@@ -147,17 +147,7 @@ export default function CombinadosPage() {
               <Field label="Bioimpedância">
                 <Input value={form.bioimpedancia} onChange={(e) => set("bioimpedancia", e.target.value)} />
               </Field>
-              <Field label="Tom do coach">
-                <select
-                  className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm"
-                  value={form.tom}
-                  onChange={(e) => set("tom", e.target.value as Combinados["tom"])}
-                >
-                  <option value="tecnico">Técnico e detalhado</option>
-                  <option value="direto">Direto e objetivo</option>
-                  <option value="acolhedor">Acolhedor</option>
-                </select>
-              </Field>
+
             </div>
           </Card>
 

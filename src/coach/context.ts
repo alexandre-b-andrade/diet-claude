@@ -22,6 +22,7 @@ export interface CoachContext {
   corpo: string;
   documentos: UserDocument[];
   language: "pt-BR" | "en";
+  coachTone: string;
 }
 
 export async function loadCoachContext(): Promise<CoachContext> {
@@ -60,6 +61,7 @@ export async function loadCoachContext(): Promise<CoachContext> {
     corpo,
     documentos: documentos.sort((a, b) => b.createdAt - a.createdAt),
     language: loadSettings().language,
+    coachTone: loadSettings().coachTone,
   };
 }
 
