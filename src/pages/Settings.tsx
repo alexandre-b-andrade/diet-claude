@@ -9,7 +9,7 @@ import { buildDemoBackup } from "../lib/demo";
 import { backupSize, deleteSnapshot, getSnapshot, isDemoActive, PRE_DEMO, saveSnapshot, setDemoActive } from "../lib/snapshot";
 import { useRef } from "react";
 import { MODELS, cacheSavingsUsd, formatBrl, formatUsd, type ModelId } from "../lib/pricing";
-import { useSettings } from "../lib/settings";
+import { COACH_TONES, isAdvanced, setAdvanced, useSettings } from "../lib/settings";
 import { useT } from "../i18n";
 import InstallCard from "../components/InstallCard";
 import Diagnostics from "../components/Diagnostics";
@@ -25,6 +25,19 @@ export default function SettingsPage() {
   const [newKey, setNewKey] = useState("");
   const { t } = useT();
   const [backupMsg, setBackupMsg] = useState<string | null>(null);
+  const [advanced, setAdv] = useState(isAdvanced);
+  const [taps, setTaps] = useState(0);
+  function tapVersion() {
+    const n = taps + 1;
+    setTaps(n);
+    if (n >= 7) {
+      const next = !advanced;
+      setAdvanced(next);
+      setAdv(next);
+      setTaps(0);
+      setBackupMsg(next ? "Modo avançado ativado: idioma, modelo, USDA, uso e diagnóstico visíveis." : "Modo avançado desativado.");
+    }
+  }
   const importRef = useRef<HTMLInputElement>(null);
   const rem = settings.reminders;
   const notifPerm = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
@@ -160,6 +173,7 @@ export default function SettingsPage() {
         <div className="mx-auto max-w-2xl space-y-4">
           <InstallCard showWhenInstalled />
 
+          {advanced && (
           <Card title={t("settings.language")}>
             <div className="flex gap-1 text-sm">
               {(["pt-BR", "en"] as const).map((l) => (
@@ -170,6 +184,7 @@ export default function SettingsPage() {
             </div>
             <p className="mt-2 text-xs text-stone-500">{t("settings.languageHint")}</p>
           </Card>
+          )}
 
           <Card title={t("settings.coach")}>
             <p className="text-sm text-stone-600">
@@ -193,6 +208,21 @@ export default function SettingsPage() {
             </div>
           </Card>
 
+          <Card title="Tom do coach">
+            <div className="space-y-2">
+              {COACH_TONES.map((tone) => (
+                <label key={tone.id} className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 p-3 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                  <input type="radio" name="tone" className="mt-1" checked={settings.coachTone === tone.id} onChange={() => update({ coachTone: tone.id })} />
+                  <span className="text-sm">
+                    <span className="font-medium">{tone.label}</span>
+                    <span className="block text-stone-600">{tone.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-stone-500">Vale a partir da próxima mensagem. Em qualquer tom o coach mantém os números e a precisão.</p>
+          </Card>
+
           <Card title={t("settings.report")}>
             <p className="text-sm text-stone-600">{t("settings.reportHint")}</p>
             <Link to="/relatorio" className="mt-3 inline-block rounded-xl bg-stone-100 px-4 py-2 text-sm font-medium text-stone-800">
@@ -200,6 +230,7 @@ export default function SettingsPage() {
             </Link>
           </Card>
 
+          {advanced && (
           <Card title={t("settings.usda")}>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={settings.usdaEnabled} onChange={(e) => update({ usdaEnabled: e.target.checked })} />
@@ -219,6 +250,9 @@ export default function SettingsPage() {
             </p>
           </Card>
 
+          )}
+
+          {advanced && (
           <Card title={t("settings.model")}>
             <div className="space-y-2">
               {MODELS.map((m) => (
@@ -242,6 +276,9 @@ export default function SettingsPage() {
             </div>
           </Card>
 
+          )}
+
+          {advanced && (
           <Card title={t("settings.usage")}>
             <dl className="grid grid-cols-[1fr_auto] gap-y-1 text-sm">
               <dt className="text-stone-500">Este mês</dt>
@@ -296,6 +333,8 @@ export default function SettingsPage() {
               Anthropic. Com orçamento definido, o app avisa ao passar de 80%.
             </p>
           </Card>
+
+          )}
 
           <Card title={t("settings.apiKey")}>
             <p className="text-sm">
@@ -475,9 +514,9 @@ export default function SettingsPage() {
             </Button>
           </Card>
 
-          <Diagnostics />
+          {advanced && <Diagnostics />}
 
-          <p className="px-1 text-xs text-stone-500">
+          <p className="px-1 text-xs text-stone-500 select-none" onClick={tapVersion}>
             Diet Coach {APP_VERSION} · Este app não substitui nutricionista ou médico.
           </p>
         </div>

@@ -11,7 +11,7 @@ export type CoachMode = "coach" | "onboarding";
 export const COACH_SYSTEM_PROMPT = `Você é um coach de dieta pessoal. Fala português do Brasil.
 
 ## Tom
-Técnico e detalhado. Explique o porquê nutricional das suas orientações: macros, fibras, densidade calórica, qualidade dos alimentos, saciedade. Use números. Seja direto, sem rodeios nem elogios vazios. Não use emojis.
+O tom é definido pelo usuário e vem na seção "Tom escolhido" do contexto. Em qualquer tom: use números, explique o essencial do porquê nutricional, não invente dados, não use emojis.
 
 ## Ferramentas
 Você tem ferramentas que gravam dados no aparelho do usuário. Use-as em vez de só responder em texto:
@@ -74,6 +74,13 @@ Etapas:
 
 Ao fim de cada etapa, grave o que foi dito com atualizar_perfil antes de passar à próxima. Se o usuário enviar documento ou foto, extraia os dados relevantes e grave. Se o usuário quiser pular algo, aceite e siga.`;
 
+const TONE_PROMPT: Record<string, string> = {
+  tecnico: "Técnico e detalhado. Explique o porquê nutricional das orientações: macros, fibras, densidade calórica, qualidade dos alimentos, saciedade. Tabelas para números. Direto, sem elogios vazios.",
+  direto: "Direto e objetivo. Respostas curtas: números na frente, no máximo um parágrafo de explicação, sem introduções. Aponte erros sem rodeios e diga o que fazer em seguida.",
+  acolhedor: "Acolhedor e motivador. Reconheça o esforço, trate deslizes com empatia e foco em consistência, sem perder a precisão dos números nem suavizar o que precisa mudar. Uma frase de incentivo por resposta, no máximo.",
+  equilibrado: "Direto com toque motivador. Números e análise primeiro, em formato enxuto; termine com uma frase curta de incentivo ou alerta prático.",
+};
+
 export interface SystemBlock {
   text: string;
   cache: boolean;
@@ -92,6 +99,7 @@ export function buildPrompt(mode: CoachMode, ctx: CoachContext, now = new Date()
   if (mode === "onboarding") system.push({ text: ONBOARDING_SYSTEM_PROMPT, cache: true });
 
   const dyn: string[] = [
+    `## Tom escolhido pelo usuário\n${TONE_PROMPT[ctx.coachTone] ?? TONE_PROMPT.tecnico}`,
     ...(ctx.language === "en" ? ["## Idioma\nO usuário escolheu inglês: responda sempre em inglês (US), mantendo unidades métricas. Os nomes das ferramentas e os dados gravados continuam em português."] : []),
     `## Contexto\nData de hoje: ${ctx.hoje} (${now.toLocaleDateString("pt-BR", { weekday: "long" })}), ${now.getHours()}h${String(now.getMinutes()).padStart(2, "0")}.`,
   ];
