@@ -155,7 +155,7 @@ Estimativa: F0–F2 formam o MVP real. Sugiro validar com 2–3 usuários ao fim
 ### Modelo e custo
 | Tema | Decisão |
 |---|---|
-| Modelo padrão | **Claude Opus 5.5** (`claude-opus-5-5`) para a conversa. Haiku 5.5 para extrações simples em lote. Usuário pode trocar nas configurações. |
+| Modelo padrão | **Claude Sonnet 5.5** (`claude-sonnet-5-5`) para a conversa (alterado em 2026-11-12; antes Opus 5.5). Haiku 5.5 para resumos de conversa. Troca de modelo só no modo avançado das configurações. |
 | API key | Informada pelo usuário e salva em `localStorage` (opção de não salvar). Mesmo princípio do B3 app, que usa `fetch` direto; aqui usamos o SDK oficial, que suporta streaming, PDFs e tool use sem código manual. |
 | Custo | App mostra tokens acumulados e estimativa em US$ e R$ por mês nas configurações. |
 

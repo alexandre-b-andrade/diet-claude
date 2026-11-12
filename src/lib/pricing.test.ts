@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { estimateCostUsd, modelInfo, DEFAULT_MODEL } from "./pricing";
 
 describe("pricing", () => {
-  it("default model is Opus 5.5", () => {
-    expect(DEFAULT_MODEL).toBe("claude-opus-5-5");
-    expect(modelInfo("desconhecido").id).toBe("claude-opus-5-5");
+  it("default model is Sonnet 5.5", () => {
+    expect(DEFAULT_MODEL).toBe("claude-sonnet-5-5");
+    expect(modelInfo("desconhecido").id).toBe("claude-sonnet-5-5");
   });
 
   it("estimates cost per million tokens", () => {
