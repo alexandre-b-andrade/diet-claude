@@ -427,7 +427,7 @@ export function buildDemoBackup(hoje = new Date()): Backup {
     const n = 1 + Math.floor(rand() * 3);
     for (let k = 0; k < n; k++) {
       const u = { inputTokens: 900 + Math.round(rand() * 1500), outputTokens: 250 + Math.round(rand() * 500), cacheWriteTokens: k === 0 ? 4200 : 600, cacheReadTokens: k === 0 ? 0 : 4800 + Math.round(rand() * 3000) };
-      usage.push({ id: uid++, createdAt: ts(date, `${String(8 + k * 5).padStart(2, "0")}:15`), model: "claude-opus-5-5", ...u, costUsd: Math.round(estimateCostUsd("claude-opus-5-5", u) * 10000) / 10000 });
+      usage.push({ id: uid++, createdAt: ts(date, `${String(8 + k * 5).padStart(2, "0")}:15`), model: "claude-sonnet-5-5", ...u, costUsd: Math.round(estimateCostUsd("claude-sonnet-5-5", u) * 10000) / 10000 });
     }
   }
 

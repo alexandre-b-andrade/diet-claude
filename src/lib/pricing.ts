@@ -16,7 +16,7 @@ export const MODELS: ModelInfo[] = [
   {
     id: "claude-opus-5-5",
     label: "Claude Opus 5.5",
-    description: "Padrão. Mais capaz para análises nutricionais detalhadas.",
+    description: "Mais capaz para análises nutricionais detalhadas; cerca de 2x o custo do Sonnet.",
     input: 4,
     output: 20,
     cacheWrite: 5,
@@ -25,7 +25,7 @@ export const MODELS: ModelInfo[] = [
   {
     id: "claude-sonnet-5-5",
     label: "Claude Sonnet 5.5",
-    description: "Mais econômico, bom para o dia a dia.",
+    description: "Padrão. Rápido e econômico, bom para o dia a dia.",
     input: 2,
     output: 10,
     cacheWrite: 2.5,
@@ -42,10 +42,10 @@ export const MODELS: ModelInfo[] = [
   },
 ];
 
-export const DEFAULT_MODEL: ModelId = "claude-opus-5-5";
+export const DEFAULT_MODEL: ModelId = "claude-sonnet-5-5";
 
 export function modelInfo(id: string): ModelInfo {
-  return MODELS.find((m) => m.id === id) ?? MODELS[0];
+  return MODELS.find((m) => m.id === id) ?? MODELS.find((m) => m.id === DEFAULT_MODEL)!;
 }
 
 export interface TokenUsage {

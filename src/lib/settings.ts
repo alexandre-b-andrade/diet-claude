@@ -64,7 +64,7 @@ export function loadSettings(): Settings {
     if (!raw) return DEFAULTS;
     const parsed = JSON.parse(raw) as Partial<Settings>;
     const merged = { ...DEFAULTS, ...parsed, reminders: { ...REMINDER_DEFAULTS, ...(parsed.reminders ?? {}) } };
-    // Fora do modo avançado o app usa sempre Opus 5.5 e português.
+    // Fora do modo avançado o app usa sempre o modelo padrão (Sonnet 5.5) e português.
     if (!isAdvanced()) {
       merged.model = DEFAULT_MODEL;
       merged.language = "pt-BR";

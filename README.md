@@ -17,7 +17,7 @@ Escopo, decisões e roadmap: [`docs/ESCOPO.md`](docs/ESCOPO.md).
 - Biblioteca de documentos: plano alimentar, orientações do nutricionista, laudos, exames, tabelas e receitas em PDF ou foto. O coach lê, resume e guarda só o resumo; o plano entra no contexto de todas as conversas.
 - Corpo: peso, medidas, bioimpedância (manual ou por foto do laudo via coach), treino, sono, passos e exames laboratoriais, com histórico. Aba **Registros** com diário por dia, corpo e busca de alimentos.
 - Prompt dinâmico: perfil e Combinados vigentes entram em todo turno; o bloco fixo usa cache de prompt.
-- Escolha de modelo (Opus 5.5 padrão, Sonnet 5.5, Haiku 5.5) e estimativa de custo por mês.
+- Modelo Sonnet 5.5 por padrão (Opus 5.5 e Haiku 5.5 no modo avançado) e estimativa de custo por mês.
 - Deploy automático no GitHub Pages a cada push na `main`.
 
 Fora do escopo por decisão: sincronização em nuvem (os dados ficam só no aparelho; use o backup JSON para trocar de celular).
